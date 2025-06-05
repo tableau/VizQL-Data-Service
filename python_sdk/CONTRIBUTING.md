@@ -136,7 +136,7 @@ python examples.py --jwt-token "<jwt-token>" --server "<server>" --site "<site-i
 4. **Run** tests and linting
 5. **Verify** that the major and minor numbers for the "version" in pyproject.toml are the same as the major and minor numbers for the "version" in VizQLDataServiceOpenAPISchema.json. If they aren't the same, the build will fail.
 6. **Bump** the patch number for the "version" in pyproject.toml. This will trigger a new release to PyPi upon merge to main.
-7. **Update** documentation (e.g. README.md) with details if needed.
+7. **Update** documentation (e.g. CHANGELOG) with details.
 8. **Update** the repository name in .github/workflows/manual.yml to your fork name if you want to manually publish to test.pypi.org to test your changes before creating a Pull Request
 9. **Commit** changes to your own branch.
 10. **Push** your work back up to your fork. (e.g. `git push fix-issue-11`)
