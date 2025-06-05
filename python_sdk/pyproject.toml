@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vizql-data-service-py"
-version = "1.1.0"  # This value is manually updated. The major and minor versions must always be the same as the version defined in VizQLDataServiceOpenAPISchema.json
+version = "1.1.1"  # This value is manually updated. The major and minor versions must always be the same as the version defined in VizQLDataServiceOpenAPISchema.json
 
 description = "A Python client library for interacting with the VizQL Data Service API"
 readme = "README.md"
