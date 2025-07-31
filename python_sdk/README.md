@@ -123,13 +123,13 @@ If you encounter SSL certificate verification errors (common in corporate enviro
 client = VizQLDataServiceClient(server_url, server, tableau_auth, verify_ssl=False)
 
 # Use custom CA bundle
-client = VizQLDataServiceClient(server_url, server, tableau_auth, verify_ssl="/path/to/your/ca_bundle.pem")
+client = VizQLDataServiceClient(server_url, server, tableau_auth, verify_ssl="/path/to/ca-bundle.pem")
 
 # Use custom SSL context
 import ssl
 ssl_context = ssl.create_default_context()    
 # Load a custom CA bundle (e.g., for self-signed certificates)
-ssl_context.load_verify_locations(cafile="path/to/your/ca-bundle.pem")
+ssl_context.load_verify_locations(cafile="/path/to/ca-bundle.pem")
 # Or load client certificates for mutual TLS authentication
 # ssl_context.load_cert_chain(certfile="path/to/your/client.pem", keyfile="path/to/your/client.key")
 client = VizQLDataServiceClient(server_url, server, tableau_auth, verify_ssl=ssl_context)
