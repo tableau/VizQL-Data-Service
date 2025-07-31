@@ -1,3 +1,7 @@
+## 1.1.2 (August 2025)
+
+* Pass verify ssl in VizDataServiceClient to allow the use of custom cert to resolve certificate issue
+
 ## 1.1.1 (June 2025)
 
 * Updates to the README and CONTRIBUTING files
@@ -5,11 +9,3 @@
 ## 1.1.0 (June 2025)
 
 * Initial Release to the world
-
-## 1.1.0 (June 2025)
-
-* Release to Github VizQL-Data-Service repo
-
-## 1.1.1 (Augest 2025)
-
-* Pass verify ssl in VizDataServiceClient to allow the use of custom cert to resolve certificate issue
