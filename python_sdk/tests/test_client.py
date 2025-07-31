@@ -1,3 +1,5 @@
+import ssl
+
 import httpx
 import tableauserverclient as TSC
 
@@ -83,6 +85,43 @@ def test_vizql_data_service_client_initialization():
     assert client.server == server
     assert client.auth == auth
     assert isinstance(client._client, AuthenticatedClient)
+
+
+def test_vizql_data_service_client_ssl_configuration():
+    """Test SSL configuration options in VizQLDataServiceClient"""
+    server = TSC.Server("http://test.com")
+    auth = TSC.TableauAuth("test-user", "test-password")
+    server._auth_token = "test-auth-token"
+
+    # Test default SSL verification (True)
+    client_default = VizQLDataServiceClient(
+        url="http://test.com", server=server, auth=auth
+    )
+    assert client_default.verify_ssl is True
+    assert client_default._client._verify_ssl is True
+
+    # Test disabled SSL verification
+    client_disabled = VizQLDataServiceClient(
+        url="http://test.com", server=server, auth=auth, verify_ssl=False
+    )
+    assert client_disabled.verify_ssl is False
+    assert client_disabled._client._verify_ssl is False
+
+    # Test custom CA bundle path
+    ca_bundle_path = "/path/to/ca-bundle.pem"
+    client_ca_bundle = VizQLDataServiceClient(
+        url="http://test.com", server=server, auth=auth, verify_ssl=ca_bundle_path
+    )
+    assert client_ca_bundle.verify_ssl == ca_bundle_path
+    assert client_ca_bundle._client._verify_ssl == ca_bundle_path
+
+    # Test custom SSL context
+    ssl_context = ssl.create_default_context()
+    client_ssl_context = VizQLDataServiceClient(
+        url="http://test.com", server=server, auth=auth, verify_ssl=ssl_context
+    )
+    assert client_ssl_context.verify_ssl == ssl_context
+    assert client_ssl_context._client._verify_ssl == ssl_context
 
 
 def test_vizql_data_service_client_user_agent():

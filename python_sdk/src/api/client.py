@@ -182,19 +182,25 @@ class VizQLDataServiceClient:
         url: str,
         server: TSC.Server,
         auth: Union[TSC.JWTAuth, TSC.PersonalAccessTokenAuth, TSC.TableauAuth],
+        verify_ssl: Union[str, bool, ssl.SSLContext] = True,
     ):
         """Initialize the client.
 
         Args:
-            server: The base URL of the server.
+            url: The base URL of the server.
+            server: The Tableau Server instance.
             auth: The authentication object. Can be one of:
                 - TSC.JWTAuth: JWT authentication (--jwt-token)
                 - TSC.PersonalAccessTokenAuth: Personal access token authentication (--pat-name, --pat-secret)
                 - TSC.TableauAuth: Tableau authentication (--user, --password)
+            verify_ssl: Whether or not to verify the SSL certificate of the API server.
+                This should be True in production, but can be set to False for testing purposes.
+                Can also be a path to a CA bundle file or an ssl.SSLContext instance.
         """
         self.url = url
         self.server = server
         self.auth = auth
+        self.verify_ssl = verify_ssl
         self._client = self._create_client()
         self.raise_on_unexpected_status = False
 
@@ -208,6 +214,7 @@ class VizQLDataServiceClient:
             token=self.server.auth_token,
             prefix="",
             auth_header_name=X_TABLEAU_AUTH,
+            verify_ssl=self.verify_ssl,
         )
 
     @property

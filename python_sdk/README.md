@@ -2,14 +2,11 @@
 
 [![Tableau Supported](https://img.shields.io/badge/Support%20Level-Tableau%20Supported-53bd92.svg)](https://www.tableau.com/support-levels-it-and-developer-tools)
 [![GitHub](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square.svg)](https://raw.githubusercontent.com/tableau/VizQL-Data-Service/refs/heads/main/python_sdk/LICENSE.txt)
-[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
-<!-- Enable after publish in production
-[![PyPI Version](https://img.shields.io/pypi/v/vizql-data-service-py.svg)](https://pypi.org/project/vizql-data-service-py/)
-[![Downloads](https://img.shields.io/pypi/dm/vizql-data-service-py.svg)](https://pypi.org/project/vizql-data-service-py/)
 [![Build](https://github.com/tableau/VizQL-Data-Service/actions/workflows/push.yml/badge.svg)](https://github.com/tableau/VizQL-Data-Service/actions/workflows/push.yml)
-Add code coverage
--->
+[![PyPI Version](https://img.shields.io/pypi/v/vizql-data-service-py.svg)](https://pypi.org/project/vizql-data-service-py/)
+[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0.3-green.svg)](https://raw.githubusercontent.com/tableau/VizQL-Data-Service/refs/heads/main/VizQLDataServiceOpenAPISchema.json)
+[![Downloads](https://img.shields.io/pypi/dm/vizql-data-service-py.svg)](https://pypi.org/project/vizql-data-service-py/)
 
 The VizQL Data Service Python SDK is a lightweight client library that enables interaction with Tableau's VizQL Data Service APIs. It supports both cloud and on-premises deployments, offering both synchronous and asynchronous methods for querying the VizQL Data Service APIs.
 
@@ -110,6 +107,35 @@ with server.auth.sign_in(tableau_auth):
     )
     print(f"Query Datasource Response: {query_response}")
 ```
+
+### SSL Configuration
+
+If you encounter SSL certificate verification errors (common in corporate environments with VPNs or custom certificates), you can configure SSL verification:
+
+**Options:**
+- `verify_ssl=True` (default): Use system's default CA bundle for SSL verification
+- `verify_ssl=False`: Disable SSL verification entirely 
+- `verify_ssl="/path/to/ca-bundle.pem"`: Use custom CA bundle file
+- `verify_ssl=ssl_context`: Use custom SSL context for advanced configurations
+
+```python
+# Disable SSL verification (for development/testing only)
+client = VizQLDataServiceClient(server_url, server, tableau_auth, verify_ssl=False)
+
+# Use custom CA bundle
+client = VizQLDataServiceClient(server_url, server, tableau_auth, verify_ssl="/path/to/your/ca_bundle.pem")
+
+# Use custom SSL context
+import ssl
+ssl_context = ssl.create_default_context()    
+# Load a custom CA bundle (e.g., for self-signed certificates)
+ssl_context.load_verify_locations(cafile="path/to/your/ca-bundle.pem")
+# Or load client certificates for mutual TLS authentication
+# ssl_context.load_cert_chain(certfile="path/to/your/client.pem", keyfile="path/to/your/client.key")
+client = VizQLDataServiceClient(server_url, server, tableau_auth, verify_ssl=ssl_context)
+```
+
+> **Security Note**: Only disable SSL verification (`verify_ssl=False`) in development or testing environments. For production, use proper SSL certificates or custom CA bundles.
 
 ### API Methods
 The SDK provides two ways to make API calls:
