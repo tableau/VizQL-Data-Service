@@ -16,6 +16,19 @@ Consider reading VizQL Data Service in the following order:
 - [VizQL Data Service Postman collection](https://www.postman.com/salesforce-developers/salesforce-developers/folder/jdy4gr3/vizql-data-service-queries)
 - [VizQL Data Service OpenAPI Schema](https://github.com/tableau/VizQL-Data-Service/blob/main/VizQLDataServiceOpenAPISchema.json)
 
+## Version Support
+The VizQL Data Service Python SDK supports different versions of the VizQLDataServiceOpenAPISchema. Past versions of the schema corresponding to past releases of Tableau can be found in the release branches with name `release-[year].[quarter]`. As an example, `release-20251.0` contains the VizQLDataServiceOpenAPISchema corresponding to 20251.0 (as a special note, the 20251.0 release uniquely does not have Python SDK support). `release-20252.0` contains the schema corresponding to 20252.0 and the Python SDK that supports 20252.0. The main branch will always contain the most recent version of the VizQLDataServiceOpenAPISchema as well as the Python SDK that supports it.
+
+### Schema Versions
+[20251.0](https://github.com/tableau/VizQL-Data-Service/blob/release-20251.0/VizQLDataServiceOpenAPISchema.json)
+
+[20252.0](https://github.com/tableau/VizQL-Data-Service/blob/main/VizQLDataServiceOpenAPISchema.json)
+
+### Python SDK Versions
+None for 20251.0
+
+[20252.0](https://github.com/tableau/VizQL-Data-Service/tree/main/python_sdk)
+
 ## 🔧 Installation
 ```bash
 python -m venv --system-site-packages venv # Optional command: set up a python virtual environment before installing the vizql_data_service_py package
