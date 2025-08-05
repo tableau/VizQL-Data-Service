@@ -109,6 +109,45 @@
                     }
                 }
             }
+        },
+        "/get-datasource-model": {
+            "post": {
+                "tags": ["HeadlessBI"],
+                "operationId": "GetDatasourceModel",
+                "summary": "Request data source model",
+                "description": "Requests the data model for a specific data source. The data model provides information about the structure and relationships in the data source.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GetDatasourceModelRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DatasourceModelOutput"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TableauError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -171,6 +210,12 @@
                     },
                     {
                         "$ref": "#/components/schemas/CalculatedField"
+                    },
+                    {
+                        "$ref": "#/components/schemas/BinField"
+                    },
+                    {
+                        "$ref": "#/components/schemas/TableCalcField"
                     }
                 ]
             },
@@ -235,36 +280,358 @@
                     "sortPriority": {}
                 }
             },
+            "BinField": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/FieldBase"
+                    }
+                ],
+                "type": "object",
+                "required": [
+                    "binSize"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "binSize": {
+                        "type": "number",
+                        "description": "The size of the bin to be applied."
+                    },
+                    "fieldCaption": {},
+                    "fieldAlias": {},
+                    "maxDecimalPlaces": {},
+                    "sortDirection": {},
+                    "sortPriority": {}
+                }
+            },
+            "TableCalcField": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/FieldBase"
+                    }
+                ],
+                "type": "object",
+                "required": [
+                    "tableCalculation"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "function": {
+                        "$ref": "#/components/schemas/Function"
+                    },
+                    "calculation": {
+                        "type": "string"
+                    },
+                    "tableCalculation": {
+                        "$ref": "#/components/schemas/TableCalcSpecification"
+                    },
+                    "fieldCaption": {},
+                    "fieldAlias": {},
+                    "maxDecimalPlaces": {},
+                    "sortDirection": {},
+                    "sortPriority": {}
+                }
+            },
+            "TableCalcSpecification": {
+                "type": "object",
+                "required": [
+                    "tableCalcType",
+                    "dimensions"
+                ],
+                "properties": {
+                    "tableCalcType": {
+                        "type": "string",
+                        "enum": [
+                            "CUSTOM",
+                            "DIFFERENCE_FROM",
+                            "PERCENT_DIFFERENCE_FROM",
+                            "PERCENT_FROM",
+                            "PERCENT_OF_TOTAL",
+                            "RANK",
+                            "PERCENTILE",
+                            "RUNNING_TOTAL",
+                            "MOVING_CALCULATION"
+                        ]
+                    },
+                    "dimensions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TableCalcFieldReference"
+                        }
+                    }
+                },
+                "discriminator": {
+                    "propertyName": "tableCalcType",
+                    "mapping": {
+                        "CUSTOM": "#/components/schemas/CustomTableCalcSpecification",
+                        "DIFFERENCE_FROM": "#/components/schemas/DifferenceTableCalcSpecification",
+                        "PERCENT_DIFFERENCE_FROM": "#/components/schemas/DifferenceTableCalcSpecification",
+                        "PERCENT_FROM": "#/components/schemas/DifferenceTableCalcSpecification",
+                        "PERCENT_OF_TOTAL": "#/components/schemas/PercentOfTotalTableCalcSpecification",
+                        "RANK": "#/components/schemas/RankTableCalcSpecification",
+                        "PERCENTILE": "#/components/schemas/PercentileTableCalcSpecification",
+                        "RUNNING_TOTAL": "#/components/schemas/RunningTotalTableCalcSpecification",
+                        "MOVING_CALCULATION": "#/components/schemas/MovingTableCalcSpecification"
+                    }
+                }
+            },
+            "CustomTableCalcSpecification": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/TableCalcSpecification"
+                    }
+                ],
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "levelAddress": {
+                        "$ref": "#/components/schemas/TableCalcFieldReference"
+                    },
+                    "restartEvery": {
+                        "$ref": "#/components/schemas/TableCalcFieldReference"
+                    },
+                    "customSort": {
+                        "$ref": "#/components/schemas/TableCalcCustomSort"
+                    }
+                }
+            },
+            "DifferenceTableCalcSpecification": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/TableCalcSpecification"
+                    }
+                ],
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "levelAddress": {
+                        "$ref": "#/components/schemas/TableCalcFieldReference"
+                    },
+                    "relativeTo": {
+                        "type": "string",
+                        "default": "PREVIOUS",
+                        "enum": [
+                            "PREVIOUS",
+                            "NEXT",
+                            "FIRST",
+                            "LAST"
+                        ]
+                    },
+                    "customSort": {
+                        "$ref": "#/components/schemas/TableCalcCustomSort"
+                    }
+                }
+            },
+            "PercentOfTotalTableCalcSpecification": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/TableCalcSpecification"
+                    }
+                ],
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "levelAddress": {
+                        "$ref": "#/components/schemas/TableCalcFieldReference"
+                    },
+                    "customSort": {
+                        "$ref": "#/components/schemas/TableCalcCustomSort"
+                    }
+                }
+            },
+            "RankTableCalcSpecification": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/TableCalcSpecification"
+                    }
+                ],
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "rankType": {
+                        "type": "string",
+                        "default": "COMPETITION",
+                        "enum": [
+                            "COMPETITION",
+                            "MODIFIED COMPETITION",
+                            "DENSE",
+                            "UNIQUE"
+                        ]
+                    },
+                    "direction": {
+                        "$ref": "#/components/schemas/SortDirection"
+                    }
+                }
+            },
+            "PercentileTableCalcSpecification": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/TableCalcSpecification"
+                    }
+                ],
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "direction": {
+                        "$ref": "#/components/schemas/SortDirection"
+                    }
+                }
+            },
+            "RunningTotalTableCalcSpecification": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/TableCalcSpecification"
+                    }
+                ],
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "aggregation": {
+                        "$ref": "#/components/schemas/TableCalcComputedAggregation"
+                    },
+                    "restartEvery": {
+                        "$ref": "#/components/schemas/TableCalcFieldReference"
+                    },
+                    "customSort": {
+                        "$ref": "#/components/schemas/TableCalcCustomSort"
+                    },
+                    "secondaryTableCalculation": {
+                        "$ref": "#/components/schemas/TableCalcSpecification"
+                    }
+                }
+            },
+            "MovingTableCalcSpecification": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/TableCalcSpecification"
+                    }
+                ],
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "aggregation": {
+                        "$ref": "#/components/schemas/TableCalcComputedAggregation"
+                    },
+                    "previous": {
+                        "type": "integer",
+                        "default": -2
+                    },
+                    "next": {
+                        "type": "integer",
+                        "default": 0
+                    },
+                    "includeCurrent": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "fillInNull": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "customSort": {
+                        "$ref": "#/components/schemas/TableCalcCustomSort"
+                    },
+                    "secondaryTableCalculation": {
+                        "$ref": "#/components/schemas/TableCalcSpecification"
+                    }
+                }
+            },
+            "TableCalcComputedAggregation": {
+                "type": "string",
+                "default": "SUM",
+                "enum": [
+                    "SUM",
+                    "AVG",
+                    "MIN",
+                    "MAX"
+                ]
+            },
+            "TableCalcFieldReference": {
+                "type": "object",
+                "required": [
+                    "fieldCaption"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "fieldCaption": {
+                        "type": "string"
+                    },
+                    "function": {
+                        "$ref": "#/components/schemas/Function"
+                    }
+                }
+            },
+            "TableCalcCustomSort": {
+                "type": "object",
+                "required": [
+                    "fieldCaption",
+                    "function",
+                    "direction"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "fieldCaption": {
+                        "type": "string"
+                    },
+                    "function": {
+                        "$ref": "#/components/schemas/Function"
+                    },
+                    "direction": {
+                        "$ref": "#/components/schemas/SortDirection"
+                    }
+                }
+            },
             "FieldMetadata": {
                 "type": "object",
                 "description": "Describes a field in the data source that can be used to create queries.",
                 "properties": {
                     "fieldName": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "The underlying database column name for the field."
                     },
                     "fieldCaption": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "The caption of the field saved in the PDS."
                     },
                     "dataType": {
-                        "type": "string",
-                        "enum": [
-                            "INTEGER",
-                            "REAL",
-                            "STRING",
-                            "DATETIME",
-                            "BOOLEAN",
-                            "DATE",
-                            "SPATIAL",
-                            "UNKNOWN"
-                        ]
+                        "$ref": "#/components/schemas/DataType",
+                        "description": "Data type of the column, i.e., \"STRING\", \"BOOLEAN\", etc."
                     },
                     "defaultAggregation": {
-                        "$ref": "#/components/schemas/Function"
+                        "$ref": "#/components/schemas/Function",
+                        "description": "The default aggregation applied to the field."
+                    },
+                    "columnClass": {
+                        "enum": [
+                            "COLUMN",
+                            "BIN",
+                            "GROUP",
+                            "CALCULATION",
+                            "TABLE_CALCULATION"
+                        ],
+                        "description": "The type of field, i.e., \"COLUMN\", \"GROUP\", BIN\" etc."
+                    },
+                    "formula": {
+                        "type": "string",
+                        "description": "The formula for this field if it is a calculation."
                     },
                     "logicalTableId": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "An internal unique identifier for the logical table that this field originates from."
                     }
                 }
+            },
+            "DataType": {
+                "type": "string",
+                "enum": [
+                    "INTEGER",
+                    "REAL",
+                    "STRING",
+                    "DATETIME",
+                    "BOOLEAN",
+                    "DATE",
+                    "SPATIAL",
+                    "UNKNOWN"
+                ]
             },
             "Connection": {
                 "type": "object",
@@ -449,6 +816,17 @@
                         "items": {
                             "$ref": "#/components/schemas/FieldMetadata"
                         }
+                    },
+                    "extraData": {
+                        "type": "object",
+                        "properties": {
+                            "parameters": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ParameterRecord"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -533,6 +911,13 @@
                         "items": {
                             "$ref": "#/components/schemas/Filter"
                         }
+                    },
+                    "parameters": {
+                        "description": "An optional array of parameters to apply to the query.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Parameter"
+                        }
                     }
                 },
                 "additionalProperties": false
@@ -549,6 +934,14 @@
                             "disaggregate": {
                                 "type": "boolean",
                                 "default": false
+                            },
+                            "interpretFieldCaptionsAsFieldNames": {
+                                "type": "boolean",
+                                "default": false,
+                                "description": "When true, user will pass in the Field's fieldName instead of the Field's fieldCaption in every place that fieldCaption appears (in Fields, Filters, and Calculation formulas). See FieldMetadata of the read-metadata endpoint."
+                            },
+                            "returnFormat": {
+                                "$ref": "#/components/schemas/ReturnFormat"
                             }
                         }
                     }
@@ -558,10 +951,11 @@
                 "type": "object",
                 "description": "Some optional metadata that can be used to adjust the behavior of an endpoint.",
                 "properties": {
-                    "returnFormat": {
-                        "$ref": "#/components/schemas/ReturnFormat"
-                    },
                     "debug": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "bypassMetadataCache": {
                         "type": "boolean",
                         "default": false
                     }
@@ -630,7 +1024,7 @@
                     "values": {
                         "type": "array",
                         "items": {
-                            "nullable": true
+                            "$ref": "#/components/schemas/NullableAny"
                         },
                         "description": "An array of values to filter on."
                     },
@@ -648,6 +1042,19 @@
                     "DESC"
                 ]
             },
+            "PeriodType": {
+                "type": "string",
+                "description": "The units of time in the date range.",
+                "enum": [
+                    "MINUTES",
+                    "HOURS",
+                    "DAYS",
+                    "WEEKS",
+                    "MONTHS",
+                    "QUARTERS",
+                    "YEARS"
+                ]
+            },
             "RelativeDateFilter": {
                 "allOf": [
                     {
@@ -659,17 +1066,7 @@
                         "required": ["periodType", "dateRangeType"],
                         "properties": {
                             "periodType": {
-                                "type": "string",
-                                "description": "The units of time in the relative date range.",
-                                "enum": [
-                                    "MINUTES",
-                                    "HOURS",
-                                    "DAYS",
-                                    "WEEKS",
-                                    "MONTHS",
-                                    "QUARTERS",
-                                    "YEARS"
-                                ]
+                                "$ref": "#/components/schemas/PeriodType"
                             },
                             "dateRangeType": {
                                 "type": "string",
@@ -729,6 +1126,205 @@
                         }
                     }
                 ]
+            },
+            "Parameter": {
+                "type": "object",
+                "description": "Use Parameters to override the default value of an existing parameter on the published datasource.",
+                "required": ["parameterCaption", "value"],
+                "properties": {
+                    "parameterCaption": {
+                        "type": "string",
+                        "description": "The caption of the parameter to set."
+                    },
+                    "value": {
+                        "description": "The value to set for the parameter. The type of the value must match the type of the parameter."
+                    }
+                }
+            },
+            "NullableAny": {
+                "nullable": true
+            },
+            "AnyValueParameter": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/ParameterRecord"
+                    }
+                ],
+                "type": "object",
+                "description": "A parameter that accepts any value of the specified data type.",
+                "additionalProperties": false
+            },
+            "ListParameter": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/ParameterRecord"
+                    }
+                ],
+                "type": "object",
+                "description": "A parameter constrained to a predefined list of allowable values.",
+                "additionalProperties": false,
+                "properties": {
+                    "members": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/NullableAny"
+                        }
+                    }
+                }
+            },
+            "QuantitativeRangeParameter": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/ParameterRecord"
+                    }
+                ],
+                "type": "object",
+                "description": "A parameter with minimum and maximum numeric value constraints.",
+                "additionalProperties": false,
+                "properties": {
+                    "min": {
+                        "type": "number",
+                        "description": "The minimum allowable value for this range parameter. Parameter values must be greater than or equal to this value."
+                    },
+                    "max": {
+                        "type": "number",
+                        "description": "The maximum allowable value for this range parameter. Parameter values must be less than or equal to this value."
+                    },
+                    "step": {
+                        "type": "number",
+                        "description": "The increment step size for values within the numeric range. Defines the granularity of allowed values between min and max."
+                    }
+                }
+            },
+            "QuantitativeDateParameter": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/ParameterRecord"
+                    }
+                ],
+                "type": "object",
+                "description": "A parameter with minimum and maximum date value constraints.",
+                "additionalProperties": false,
+                "properties": {
+                    "minDate": {
+                        "type": "string",
+                        "description": "An RFC 3339 date indicating the earliest allowable date for this parameter."
+                    },
+                    "maxDate": {
+                        "type": "string",
+                        "description": "An RFC 3339 date indicating the latest allowable date for this parameter."
+                    },
+                    "periodType": {
+                        "$ref": "#/components/schemas/PeriodType"
+                    },
+                    "periodValue": {
+                        "type": "number",
+                        "description": "The numeric value associated with the period type for date granularity."
+                    }
+                }
+            },
+            "ParameterRecord": {
+                "type": "object",
+                "description": "Common properties of a parameter. A parameter is a workbook variable such as a number, date, or string that can replace a constant value in a calculation, filter, or reference line.",
+                "required": ["parameterType", "parameterCaption", "value", "dataType"],
+                "properties": {
+                    "parameterType": {
+                        "type": "string",
+                        "enum": [
+                            "ANY_VALUE",
+                            "LIST",
+                            "QUANTITATIVE_RANGE",
+                            "QUANTITATIVE_DATE"
+                        ]
+                    },
+                    "parameterName": {
+                        "type": "string",
+                        "description": "The tableau internal name of the parameter to identify and reference the parameter."
+                    },
+                    "parameterCaption": {
+                        "type": "string",
+                        "description": "The user defined name of the parameter to identify and reference the parameter."
+                    },
+                    "dataType": {
+                        "$ref": "#/components/schemas/DataType"
+                    },
+                    "value": {
+                        "description": "The value to set for the parameter. The type of the value must match the type of the parameter."
+                    }
+                },
+                "discriminator": {
+                    "propertyName": "parameterType",
+                    "mapping": {
+                        "ANY_VALUE": "#/components/schemas/AnyValueParameter",
+                        "LIST": "#/components/schemas/ListParameter",
+                        "QUANTITATIVE_RANGE": "#/components/schemas/QuantitativeRangeParameter",
+                        "QUANTITATIVE_DATE": "#/components/schemas/QuantitativeDateParameter"
+                    }
+                }
+            },
+            "GetDatasourceModelRequest": {
+                "type": "object",
+                "required": [
+                    "datasource"
+                ],
+                "properties": {
+                    "datasource": {
+                        "$ref": "#/components/schemas/Datasource"
+                    },
+                    "options": {
+                        "$ref": "#/components/schemas/QueryOptions"
+                    }
+                }
+            },
+            "DatasourceModelOutput": {
+                "type": "object",
+                "properties": {
+                    "logicalTables": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LogicalTable"
+                        }
+                    },
+                    "logicalTableRelationships": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LogicalTableRelationship"
+                        }
+                    }
+                }
+            },
+            "LogicalTable": {
+                "type": "object",
+                "required": ["logicalTableId", "caption"],
+                "properties": {
+                    "logicalTableId": {
+                        "type": "string"
+                    },
+                    "caption": {
+                        "type": "string"
+                    }
+                }
+            },
+            "LogicalTableRelationship": {
+                "type": "object",
+                "required": ["fromLogicalTable", "toLogicalTable"],
+                "properties": {
+                    "fromLogicalTable": {
+                        "$ref": "#/components/schemas/LogicalTableRelationshipEndpoint"
+                    },
+                    "toLogicalTable": {
+                        "$ref": "#/components/schemas/LogicalTableRelationshipEndpoint"
+                    }
+                }
+            },
+            "LogicalTableRelationshipEndpoint": {
+                "type": "object",
+                "required": ["logicalTableId"],
+                "properties": {
+                    "logicalTableId": {
+                        "type": "string"
+                    }
+                }
             }
         },
         "securitySchemes": {

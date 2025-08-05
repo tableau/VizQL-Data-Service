@@ -31,18 +31,36 @@ def sample_metadata_output():
     return {
         "data": [
             {
+                "fieldName": "Returned",
+                "fieldCaption": "Returned",
+                "dataType": "STRING",
+                "defaultAggregation": "COUNT",
+                "logicalTableId": "Returns_2AA0FE4D737A4F63970131D0E7480A03",
+                "columnClass": "COLUMN"
+            },
+            {
                 "fieldName": "Category",
                 "fieldCaption": "Category",
                 "dataType": "STRING",
-                "logicalTableId": "table1",
-            },
-            {
-                "fieldName": "Sales",
-                "fieldCaption": "Sales",
-                "dataType": "REAL",
-                "logicalTableId": "table1",
-            },
-        ]
+                "defaultAggregation": "COUNT",
+                "logicalTableId": "Orders_ECFCA1FB690A41FE803BC071773BA862",
+                "columnClass": "COLUMN"
+            }
+        ],
+        "extraData": {
+            "parameters": [
+                {
+                    "parameterType": "QUANTITATIVE_RANGE",
+                    "parameterName": "Parameter 1",
+                    "parameterCaption": "Top Customers",
+                    "dataType": "INTEGER",
+                    "value": 5.0,
+                    "min": 5.0,
+                    "max": 20.0,
+                    "step": 5.0
+                },
+            ]
+        }
     }
 
 
@@ -179,7 +197,7 @@ def test_query_request_from_dict(sample_query_request):
     # Test set filter
     set_filter = request.query.filters[2].root
     assert set_filter.filterType == FilterType.SET
-    assert set_filter.values == ["First Class"]
+    assert [value.root for value in set_filter.values] == ["First Class"]
     assert set_filter.exclude is False
     assert set_filter.field.root.fieldCaption == "Ship Mode"
 
