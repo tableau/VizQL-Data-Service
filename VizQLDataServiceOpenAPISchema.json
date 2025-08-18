@@ -1,5 +1,5 @@
 {
-    "openapi": "3.0.3",
+    "openapi": "3.0.4",
     "info": {
         "title": "VizQL Data Service",
         "description": "An API to query Tableau published data sources",
@@ -161,6 +161,11 @@
                     },
                     "message": {
                         "type": "string"
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                        }
                     },
                     "datetime": {
                         "type": "string",
@@ -324,6 +329,13 @@
                     "tableCalculation": {
                         "$ref": "#/components/schemas/TableCalcSpecification"
                     },
+                    "nestedTableCalculations": {
+                        "type": "array",
+                        "nullable": true,
+                        "items": {
+                            "$ref": "#/components/schemas/TableCalcSpecification"
+                        }
+                    },
                     "fieldCaption": {},
                     "fieldAlias": {},
                     "maxDecimalPlaces": {},
@@ -342,6 +354,7 @@
                         "type": "string",
                         "enum": [
                             "CUSTOM",
+                            "NESTED",
                             "DIFFERENCE_FROM",
                             "PERCENT_DIFFERENCE_FROM",
                             "PERCENT_FROM",
@@ -363,6 +376,7 @@
                     "propertyName": "tableCalcType",
                     "mapping": {
                         "CUSTOM": "#/components/schemas/CustomTableCalcSpecification",
+                        "NESTED": "#/components/schemas/NestedTableCalcSpecification",
                         "DIFFERENCE_FROM": "#/components/schemas/DifferenceTableCalcSpecification",
                         "PERCENT_DIFFERENCE_FROM": "#/components/schemas/DifferenceTableCalcSpecification",
                         "PERCENT_FROM": "#/components/schemas/DifferenceTableCalcSpecification",
@@ -383,6 +397,32 @@
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
+                    "levelAddress": {
+                        "$ref": "#/components/schemas/TableCalcFieldReference"
+                    },
+                    "restartEvery": {
+                        "$ref": "#/components/schemas/TableCalcFieldReference"
+                    },
+                    "customSort": {
+                        "$ref": "#/components/schemas/TableCalcCustomSort"
+                    }
+                }
+            },
+            "NestedTableCalcSpecification": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/TableCalcSpecification"
+                    }
+                ],
+                "type": "object",
+                "required": [
+                    "fieldCaption"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "fieldCaption": {
+                        "type": "string"
+                    },
                     "levelAddress": {
                         "$ref": "#/components/schemas/TableCalcFieldReference"
                     },
@@ -935,11 +975,6 @@
                                 "type": "boolean",
                                 "default": false
                             },
-                            "interpretFieldCaptionsAsFieldNames": {
-                                "type": "boolean",
-                                "default": false,
-                                "description": "When true, user will pass in the Field's fieldName instead of the Field's fieldCaption in every place that fieldCaption appears (in Fields, Filters, and Calculation formulas). See FieldMetadata of the read-metadata endpoint."
-                            },
                             "returnFormat": {
                                 "$ref": "#/components/schemas/ReturnFormat"
                             }
@@ -958,6 +993,11 @@
                     "bypassMetadataCache": {
                         "type": "boolean",
                         "default": false
+                    },
+                    "interpretFieldCaptionsAsFieldNames": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "When true, user will pass in the Field's fieldName instead of the Field's fieldCaption in every place that fieldCaption appears (in Fields, Filters, and Calculation formulas). See FieldMetadata of the read-metadata endpoint."
                     }
                 }
             },
