@@ -8,7 +8,7 @@ def convert_file(input_file, output_file):
 
     # Regex replacements
     replacementsRegex = {
-        r"\bField\b": "PydanticField",
+        r"\bField\(": r"PydanticField(",
         r"    model_config = ConfigDict\(\n        extra=\'forbid\',\n    \)\n": "",
     }
 
@@ -19,7 +19,8 @@ def convert_file(input_file, output_file):
     replacements = {
         "FieldModel": "Field",
         "Optional[List[Filter]]": "Optional[List[TabFilter]]",
-        "from pydantic import ConfigDict, PydanticField, RootModel": "from pydantic import Field as PydanticField, RootModel",
+        ", Field, ": ", Field as PydanticField, ",
+        " ConfigDict,": "",
         "import TableauModel": "from .tableau_model import TableauModel",
     }
 
