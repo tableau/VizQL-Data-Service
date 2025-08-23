@@ -3,7 +3,7 @@
     "info": {
         "title": "VizQL Data Service",
         "description": "An API to query Tableau published data sources",
-        "version": "20252.0"
+        "version": "20253.0"
     },
     "servers": [
         {
