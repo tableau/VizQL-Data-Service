@@ -154,7 +154,7 @@
         "schemas": {
             "TableauError": {
                 "type": "object",
-                "x-class-extra-annotation": "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)",
+                "x-class-extra-annotation": "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY)",
                 "properties": {
                     "errorCode": {
                         "type": "string"
