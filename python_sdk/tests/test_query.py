@@ -10,20 +10,18 @@ from src.api.openapi_generated import (
     Function,
     MeasureField,
     MetadataOutput,
+    ParameterType,
     PeriodType,
     QuantitativeFilterType,
+    QuantitativeRangeParameter,
     QueryRequest,
     ReadMetadataRequest,
-    ReturnFormat,
 )
 
 
 @pytest.fixture
 def sample_metadata_request():
-    return {
-        "datasource": {"datasourceLuid": "74ff134d-7f8f-475c-a63e-bf14ea26cbb1"},
-        "options": {"returnFormat": "OBJECTS"},
-    }
+    return {"datasource": {"datasourceLuid": "74ff134d-7f8f-475c-a63e-bf14ea26cbb1"}}
 
 
 @pytest.fixture
@@ -31,18 +29,36 @@ def sample_metadata_output():
     return {
         "data": [
             {
+                "fieldName": "Returned",
+                "fieldCaption": "Returned",
+                "dataType": "STRING",
+                "defaultAggregation": "COUNT",
+                "logicalTableId": "Returns_2AA0FE4D737A4F63970131D0E7480A03",
+                "columnClass": "COLUMN",
+            },
+            {
                 "fieldName": "Category",
                 "fieldCaption": "Category",
                 "dataType": "STRING",
-                "logicalTableId": "table1",
+                "defaultAggregation": "COUNT",
+                "logicalTableId": "Orders_ECFCA1FB690A41FE803BC071773BA862",
+                "columnClass": "COLUMN",
             },
-            {
-                "fieldName": "Sales",
-                "fieldCaption": "Sales",
-                "dataType": "REAL",
-                "logicalTableId": "table1",
-            },
-        ]
+        ],
+        "extraData": {
+            "parameters": [
+                {
+                    "parameterType": "QUANTITATIVE_RANGE",
+                    "parameterName": "Parameter 1",
+                    "parameterCaption": "Top Customers",
+                    "dataType": "INTEGER",
+                    "value": 5.0,
+                    "min": 5.0,
+                    "max": 20.0,
+                    "step": 5.0,
+                },
+            ]
+        },
     }
 
 
@@ -88,7 +104,6 @@ def test_read_metadata_request_from_obj(sample_metadata_request):
     request = ReadMetadataRequest.model_validate(sample_metadata_request)
     assert request.datasource.datasourceLuid == "74ff134d-7f8f-475c-a63e-bf14ea26cbb1"
     assert request.datasource.connections is None
-    assert request.options.returnFormat == ReturnFormat.OBJECTS
 
 
 def test_metadata_output_from_obj(sample_metadata_output):
@@ -99,19 +114,35 @@ def test_metadata_output_from_obj(sample_metadata_output):
     assert output.data is not None
     assert len(output.data) == 2
 
-    # Test first field (Category)
-    category_field = output.data[0]
+    # Test first field (Returned)
+    returned_field = output.data[0]
+    assert returned_field.fieldName == "Returned"
+    assert returned_field.fieldCaption == "Returned"
+    assert returned_field.dataType == DataType.STRING
+    assert returned_field.logicalTableId == "Returns_2AA0FE4D737A4F63970131D0E7480A03"
+
+    # Test second field (Category)
+    category_field = output.data[1]
     assert category_field.fieldName == "Category"
     assert category_field.fieldCaption == "Category"
     assert category_field.dataType == DataType.STRING
-    assert category_field.logicalTableId == "table1"
+    assert category_field.logicalTableId == "Orders_ECFCA1FB690A41FE803BC071773BA862"
 
-    # Test second field (Sales)
-    sales_field = output.data[1]
-    assert sales_field.fieldName == "Sales"
-    assert sales_field.fieldCaption == "Sales"
-    assert sales_field.dataType == DataType.REAL
-    assert sales_field.logicalTableId == "table1"
+    # Test extraData parameters
+    assert output.extraData is not None
+    assert output.extraData.parameters is not None
+    assert len(output.extraData.parameters) == 1
+
+    param = output.extraData.parameters[0].root
+    assert isinstance(param, QuantitativeRangeParameter)
+    assert param.parameterType == ParameterType.QUANTITATIVE_RANGE
+    assert param.parameterName == "Parameter 1"
+    assert param.parameterCaption == "Top Customers"
+    assert param.dataType == DataType.INTEGER
+    assert param.value == 5.0
+    assert param.min == 5.0
+    assert param.max == 20.0
+    assert param.step == 5.0
 
 
 def test_metadata_output_to_dict(sample_metadata_output):
@@ -123,19 +154,36 @@ def test_metadata_output_to_dict(sample_metadata_output):
     assert "data" in output_dict
     assert len(output_dict["data"]) == 2
 
-    # Test first field (Category)
-    category_field = output_dict["data"][0]
+    # Test first field (Returned)
+    returned_field = output_dict["data"][0]
+    assert returned_field["fieldName"] == "Returned"
+    assert returned_field["fieldCaption"] == "Returned"
+    assert returned_field["dataType"] == DataType.STRING
+    assert (
+        returned_field["logicalTableId"] == "Returns_2AA0FE4D737A4F63970131D0E7480A03"
+    )
+
+    # Test second field (Category)
+    category_field = output_dict["data"][1]
     assert category_field["fieldName"] == "Category"
     assert category_field["fieldCaption"] == "Category"
     assert category_field["dataType"] == DataType.STRING
-    assert category_field["logicalTableId"] == "table1"
+    assert category_field["logicalTableId"] == "Orders_ECFCA1FB690A41FE803BC071773BA862"
 
-    # Test second field (Sales)
-    sales_field = output_dict["data"][1]
-    assert sales_field["fieldName"] == "Sales"
-    assert sales_field["fieldCaption"] == "Sales"
-    assert sales_field["dataType"] == DataType.REAL
-    assert sales_field["logicalTableId"] == "table1"
+    # Test extraData parameters
+    assert "extraData" in output_dict
+    assert output_dict["extraData"]["parameters"] is not None
+    assert len(output_dict["extraData"]["parameters"]) == 1
+
+    param = output_dict["extraData"]["parameters"][0]
+    assert param["parameterType"] == ParameterType.QUANTITATIVE_RANGE
+    assert param["parameterName"] == "Parameter 1"
+    assert param["parameterCaption"] == "Top Customers"
+    assert param["dataType"] == DataType.INTEGER
+    assert param["value"] == 5.0
+    assert param["min"] == 5.0
+    assert param["max"] == 20.0
+    assert param["step"] == 5.0
 
 
 def test_query_request_from_dict(sample_query_request):
@@ -179,7 +227,7 @@ def test_query_request_from_dict(sample_query_request):
     # Test set filter
     set_filter = request.query.filters[2].root
     assert set_filter.filterType == FilterType.SET
-    assert set_filter.values == ["First Class"]
+    assert [value.root for value in set_filter.values] == ["First Class"]
     assert set_filter.exclude is False
     assert set_filter.field.root.fieldCaption == "Ship Mode"
 

@@ -11,8 +11,10 @@ is_development = os.path.basename(root_dir) == "python_sdk"
 
 if is_development:
     from src.api.openapi_generated import (
+        BinField,
         CalculatedField,
         DateRangeType,
+        DifferenceTableCalcSpecification,
         DimensionField,
         DimensionFilterField,
         Direction,
@@ -21,6 +23,7 @@ if is_development:
         MatchFilter,
         MeasureField,
         MeasureFilterField,
+        Parameter,
         PeriodType,
         QuantitativeDateFilter,
         QuantitativeFilterType,
@@ -28,6 +31,9 @@ if is_development:
         Query,
         RelativeDateFilter,
         SetFilter,
+        TableCalcField,
+        TableCalcFieldReference,
+        TableCalcType,
         TopNFilter,
     )
 else:
@@ -318,6 +324,59 @@ def create_numeric_date_dimension_filters():
     )
 
 
+def create_bin_formatting_with_parameter():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Profit (bin)", sortPriority=1),
+        ],
+        parameters=[Parameter(parameterCaption="Profit Bin Size", value=50)],
+    )
+
+
+def create_new_bin_field():
+    return Query(
+        fields=[
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+            BinField(fieldCaption="Profit", binSize=4000, sortPriority=1),
+        ]
+    )
+
+
+def create_parameter_calculated_field():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Category"),
+            DimensionField(fieldCaption="Country/Region"),
+            CalculatedField(
+                fieldCaption="Binned Profit",
+                calculation="INT([Profit] / [Profit Bin Size]) * [Profit Bin Size]",
+            ),
+        ],
+        parameters=[Parameter(parameterCaption="Profit Bin Size", value=200)],
+    )
+
+
+def create_simple_table_calculation():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Region", sortPriority=1),
+            DimensionField(fieldCaption="Segment", sortPriority=2),
+            TableCalcField(
+                fieldCaption="Sales",
+                function=Function.SUM,
+                tableCalculation=DifferenceTableCalcSpecification(
+                    tableCalcType=TableCalcType.DIFFERENCE_FROM,
+                    dimensions=[
+                        TableCalcFieldReference(fieldCaption="Region"),
+                        TableCalcFieldReference(fieldCaption="Segment"),
+                    ],
+                    relativeTo="NEXT",
+                ),
+            ),
+        ]
+    )
+
+
 QUERY_FUNCTIONS = [
     create_simple_query,
     create_custom_calculation,
@@ -332,4 +391,8 @@ QUERY_FUNCTIONS = [
     create_dimension_numeric_filters,
     create_context_filter,
     create_numeric_date_dimension_filters,
+    create_bin_formatting_with_parameter,
+    create_new_bin_field,
+    create_parameter_calculated_field,
+    create_simple_table_calculation,
 ]

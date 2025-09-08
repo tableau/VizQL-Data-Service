@@ -5,7 +5,7 @@
 [![Build](https://github.com/tableau/VizQL-Data-Service/actions/workflows/push.yml/badge.svg)](https://github.com/tableau/VizQL-Data-Service/actions/workflows/push.yml)
 [![PyPI Version](https://img.shields.io/pypi/v/vizql-data-service-py.svg)](https://pypi.org/project/vizql-data-service-py/)
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
-[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0.3-green.svg)](https://raw.githubusercontent.com/tableau/VizQL-Data-Service/refs/heads/main/VizQLDataServiceOpenAPISchema.json)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0.4-green.svg)](https://raw.githubusercontent.com/tableau/VizQL-Data-Service/refs/heads/main/VizQLDataServiceOpenAPISchema.json)
 [![Downloads](https://static.pepy.tech/badge/vizql-data-service-py/month)](https://pypi.org/project/vizql-data-service-py/)
 
 The VizQL Data Service Python SDK is a lightweight client library that enables interaction with Tableau's VizQL Data Service APIs. It supports both cloud and on-premises deployments, offering both synchronous and asynchronous methods for querying the VizQL Data Service APIs.
@@ -22,12 +22,16 @@ The VizQL Data Service Python SDK supports different versions of the VizQLDataSe
 ### Schema Versions
 [20251.0](https://github.com/tableau/VizQL-Data-Service/blob/release-20251.0/VizQLDataServiceOpenAPISchema.json)
 
-[20252.0](https://github.com/tableau/VizQL-Data-Service/blob/main/VizQLDataServiceOpenAPISchema.json)
+[20252.0](https://github.com/tableau/VizQL-Data-Service/blob/release-20252.0/VizQLDataServiceOpenAPISchema.json)
+
+[20253.0](https://github.com/tableau/VizQL-Data-Service/blob/main/VizQLDataServiceOpenAPISchema.json)
 
 ### Python SDK Versions
 None for 20251.0
 
-[20252.0](https://github.com/tableau/VizQL-Data-Service/tree/main/python_sdk)
+[20252.0](https://github.com/tableau/VizQL-Data-Service/tree/release-20252.0/python_sdk)
+
+[20253.0](https://github.com/tableau/VizQL-Data-Service/tree/main/python_sdk)
 
 ## 🔧 Installation
 ```bash
