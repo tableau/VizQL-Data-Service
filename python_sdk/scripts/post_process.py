@@ -32,9 +32,9 @@ def convert_file(input_file, output_file):
     # Add TabFilter class at the end of file
     tab_filter_code = """
 class TabFilter(RootModel[Union[
-    MatchFilter, QuantitativeNumericalFilter, QuantitativeDateFilter, SetFilter, RelativeDateFilter, TopNFilter]]):
+    MatchFilter, QuantitativeNumericalFilter, QuantitativeDateFilter, SetFilter, RelativeDateFilter, TopNFilter, ConditionFilter]]):
     root: Union[
-        MatchFilter, QuantitativeNumericalFilter, QuantitativeDateFilter, SetFilter, RelativeDateFilter, TopNFilter]
+        MatchFilter, QuantitativeNumericalFilter, QuantitativeDateFilter, SetFilter, RelativeDateFilter, TopNFilter, ConditionFilter]
 """
     content += tab_filter_code
 

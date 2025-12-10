@@ -12,15 +12,31 @@ is_development = os.path.basename(root_dir) == "python_sdk"
 
 if is_development:
     import src.examples.common as common
-    from src.api import query_datasource, read_metadata
+    from src.api import (
+        get_datasource_model,
+        query_datasource,
+        read_metadata,
+    )
     from src.api.client import VizQLDataServiceClient
-    from src.api.openapi_generated import QueryRequest, ReadMetadataRequest
+    from src.api.openapi_generated import (
+        GetDatasourceModelRequest,
+        QueryRequest,
+        ReadMetadataRequest,
+    )
     from src.examples.payload import QUERY_FUNCTIONS
 else:
     import vizql_data_service_py.examples.common as common  # type: ignore
-    from vizql_data_service_py.api import query_datasource, read_metadata  # type: ignore
+    from vizql_data_service_py.api import (  # type: ignore
+        get_datasource_model,
+        query_datasource,
+        read_metadata,
+    )
     from vizql_data_service_py.api.client import VizQLDataServiceClient  # type: ignore
-    from vizql_data_service_py.api.openapi_generated import QueryRequest, ReadMetadataRequest  # type: ignore
+    from vizql_data_service_py.api.openapi_generated import (  # type: ignore
+        GetDatasourceModelRequest,
+        QueryRequest,
+        ReadMetadataRequest,
+    )
     from vizql_data_service_py.examples.payload import QUERY_FUNCTIONS  # type: ignore
 
 
@@ -73,3 +89,19 @@ def execute(args):
             except Exception as e:
                 print(f"\n=== ExecuteQuery: {query_func.__name__} ===")
                 common.handle_error(e, f"Query {query_func.__name__}", args.verbose)
+
+        # Get datasource model example
+        try:
+            print("\n=== GetDatasourceModel ===")
+            datasource_model_request = GetDatasourceModelRequest(datasource=datasource)
+            if args.verbose:
+                print(f"Request Body: {datasource_model_request}")
+
+            datasource_model_response = get_datasource_model.sync_detailed(
+                client=client, body=datasource_model_request
+            )
+            common.handle_response(
+                datasource_model_response, "GetDatasourceModel", args.verbose
+            )
+        except Exception as e:
+            common.handle_error(e, "GetDatasourceModel", args.verbose)
