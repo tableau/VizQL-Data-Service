@@ -24,14 +24,18 @@ The VizQL Data Service Python SDK supports different versions of the VizQLDataSe
 
 [20252.0](https://github.com/tableau/VizQL-Data-Service/blob/release-20252.0/VizQLDataServiceOpenAPISchema.json)
 
-[20253.0](https://github.com/tableau/VizQL-Data-Service/blob/main/VizQLDataServiceOpenAPISchema.json)
+[20253.0](https://github.com/tableau/VizQL-Data-Service/blob/release-20253.0/VizQLDataServiceOpenAPISchema.json)
+
+[20261.0](https://github.com/tableau/VizQL-Data-Service/blob/main/VizQLDataServiceOpenAPISchema.json)
 
 ### Python SDK Versions
 None for 20251.0
 
 [20252.0](https://github.com/tableau/VizQL-Data-Service/tree/release-20252.0/python_sdk)
 
-[20253.0](https://github.com/tableau/VizQL-Data-Service/tree/main/python_sdk)
+[20253.0](https://github.com/tableau/VizQL-Data-Service/tree/release-20253.0/python_sdk)
+
+[20261.0](https://github.com/tableau/VizQL-Data-Service/tree/main/python_sdk)
 
 ## 🔧 Installation
 ```bash
