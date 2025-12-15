@@ -41,11 +41,13 @@ if is_development:
     )
 else:
     from vizql_data_service_py.api.openapi_generated import (  # type: ignore
+        BinField,
         CalculatedField,
         CalculatedFilterField,
         ConditionalFilterCondition,
         ConditionFilter,
         DateRangeType,
+        DifferenceTableCalcSpecification,
         DimensionField,
         DimensionFilterField,
         Direction,
@@ -54,6 +56,7 @@ else:
         MatchFilter,
         MeasureField,
         MeasureFilterField,
+        Parameter,
         PeriodType,
         QuantitativeDateFilter,
         QuantitativeFilterType,
@@ -61,6 +64,9 @@ else:
         Query,
         RelativeDateFilter,
         SetFilter,
+        TableCalcField,
+        TableCalcFieldReference,
+        TableCalcType,
         TopNFilter,
     )
 
@@ -501,7 +507,7 @@ def create_simple_table_calculation():
                 fieldCaption="Sales",
                 function=Function.SUM,
                 tableCalculation=DifferenceTableCalcSpecification(
-                    tableCalcType=TableCalcType.DIFFERENCE_FROM,
+                    tableCalcType=TableCalcType.DIFFERENCE_FROM.value,
                     dimensions=[
                         TableCalcFieldReference(fieldCaption="Region"),
                         TableCalcFieldReference(fieldCaption="Segment"),
