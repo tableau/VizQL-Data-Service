@@ -24,6 +24,7 @@ def convert_file(input_file, output_file):
         "import TableauModel": "from .tableau_model import TableauModel",
         "ParameterRecord": "ParameterRecordBase",
         "Optional[List[ParameterRecordBase]]": "Optional[List[ParameterRecord]]",
+        "QuantitativeFilterBase,": "QuantitativeNumericalFilter, QuantitativeDateFilter,",
     }
 
     for old, new in replacements.items():
