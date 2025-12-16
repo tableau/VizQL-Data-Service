@@ -19,6 +19,10 @@ from src.api.openapi_generated import (
 )
 
 
+def _unwrap(obj):
+    return obj.root if hasattr(obj, "root") else obj
+
+
 @pytest.fixture
 def sample_metadata_request():
     return {"datasource": {"datasourceLuid": "74ff134d-7f8f-475c-a63e-bf14ea26cbb1"}}
@@ -133,7 +137,7 @@ def test_metadata_output_from_obj(sample_metadata_output):
     assert output.extraData.parameters is not None
     assert len(output.extraData.parameters) == 1
 
-    param = output.extraData.parameters[0].root
+    param = _unwrap(output.extraData.parameters[0])
     assert isinstance(param, QuantitativeRangeParameter)
     assert param.parameterType == ParameterType.QUANTITATIVE_RANGE
     assert param.parameterName == "Parameter 1"
@@ -195,41 +199,44 @@ def test_query_request_from_dict(sample_query_request):
 
     # Test fields
     assert len(request.query.fields) == 3
-    assert isinstance(request.query.fields[0].root, DimensionField)
-    assert request.query.fields[0].root.fieldCaption == "Order Date"
-    assert isinstance(request.query.fields[1].root, MeasureField)
-    assert request.query.fields[1].root.fieldCaption == "Sales"
-    assert request.query.fields[1].root.function == Function.SUM
-    assert isinstance(request.query.fields[2].root, DimensionField)
-    assert request.query.fields[2].root.fieldCaption == "Ship Mode"
+    field0 = _unwrap(request.query.fields[0])
+    assert isinstance(field0, DimensionField)
+    assert field0.fieldCaption == "Order Date"
+    field1 = _unwrap(request.query.fields[1])
+    assert isinstance(field1, MeasureField)
+    assert field1.fieldCaption == "Sales"
+    assert field1.function == Function.SUM
+    field2 = _unwrap(request.query.fields[2])
+    assert isinstance(field2, DimensionField)
+    assert field2.fieldCaption == "Ship Mode"
 
     # Test filters
     assert len(request.query.filters) == 3
 
     # Test quantitative filter
-    quant_filter = request.query.filters[0].root
+    quant_filter = _unwrap(request.query.filters[0])
     assert quant_filter.filterType == FilterType.QUANTITATIVE_NUMERICAL
     assert quant_filter.quantitativeFilterType == QuantitativeFilterType.RANGE
     assert quant_filter.min == 10
     assert quant_filter.max == 63
-    assert quant_filter.field.root.fieldCaption == "Sales"
-    assert quant_filter.field.root.function == Function.SUM
+    assert _unwrap(quant_filter.field).fieldCaption == "Sales"
+    assert _unwrap(quant_filter.field).function == Function.SUM
 
     # Test date filter
-    date_filter = request.query.filters[1].root
+    date_filter = _unwrap(request.query.filters[1])
     assert date_filter.filterType == FilterType.DATE
     assert date_filter.periodType == PeriodType.MONTHS
     assert date_filter.dateRangeType == DateRangeType.NEXTN
     assert date_filter.rangeN == 3
     assert date_filter.anchorDate == datetime.date(2021, 1, 1)
-    assert date_filter.field.root.fieldCaption == "Order Date"
+    assert _unwrap(date_filter.field).fieldCaption == "Order Date"
 
     # Test set filter
-    set_filter = request.query.filters[2].root
+    set_filter = _unwrap(request.query.filters[2])
     assert set_filter.filterType == FilterType.SET
-    assert [value.root for value in set_filter.values] == ["First Class"]
+    assert [_unwrap(value) for value in set_filter.values] == ["First Class"]
     assert set_filter.exclude is False
-    assert set_filter.field.root.fieldCaption == "Ship Mode"
+    assert _unwrap(set_filter.field).fieldCaption == "Ship Mode"
 
 
 def test_query_request_to_dict(sample_query_request):
