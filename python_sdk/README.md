@@ -33,7 +33,7 @@ None for 20251.0
 
 [20252.0](https://github.com/tableau/VizQL-Data-Service/tree/release-20252.0/python_sdk)
 
-[20253.0](https://github.com/tableau/VizQL-Data-Service/tree/release-20252\3.0/python_sdk)
+[20253.0](https://github.com/tableau/VizQL-Data-Service/tree/release-20253.0/python_sdk)
 
 [20261.0](https://github.com/tableau/VizQL-Data-Service/tree/main/python_sdk)
 
