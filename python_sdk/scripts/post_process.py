@@ -24,17 +24,63 @@ def convert_file(input_file, output_file):
         "import TableauModel": "from .tableau_model import TableauModel",
         "ParameterRecord": "ParameterRecordBase",
         "Optional[List[ParameterRecordBase]]": "Optional[List[ParameterRecord]]",
+        "QuantitativeFilterBase,": "QuantitativeNumericalFilter, QuantitativeDateFilter,",
     }
 
     for old, new in replacements.items():
         content = content.replace(old, new)
 
-    # Add TabFilter class at the end of file
+    # Add Literal filterType to each filter subclass for discriminator support
+    filter_literals = [
+        (
+            "class MatchFilter(Filter):",
+            "class MatchFilter(Filter):\n"
+            "    filterType: Literal[FilterType.MATCH] = FilterType.MATCH",
+        ),
+        (
+            "class ConditionFilter(Filter):",
+            "class ConditionFilter(Filter):\n"
+            "    filterType: Literal[FilterType.CONDITION] = FilterType.CONDITION",
+        ),
+        (
+            "class QuantitativeNumericalFilter(QuantitativeFilterBase):",
+            "class QuantitativeNumericalFilter(QuantitativeFilterBase):\n"
+            "    filterType: Literal[FilterType.QUANTITATIVE_NUMERICAL] = "
+            "FilterType.QUANTITATIVE_NUMERICAL",
+        ),
+        (
+            "class QuantitativeDateFilter(QuantitativeFilterBase):",
+            "class QuantitativeDateFilter(QuantitativeFilterBase):\n"
+            "    filterType: Literal[FilterType.QUANTITATIVE_DATE] = "
+            "FilterType.QUANTITATIVE_DATE",
+        ),
+        (
+            "class SetFilter(Filter):",
+            "class SetFilter(Filter):\n"
+            "    filterType: Literal[FilterType.SET] = FilterType.SET",
+        ),
+        (
+            "class RelativeDateFilter(Filter):",
+            "class RelativeDateFilter(Filter):\n"
+            "    filterType: Literal[FilterType.DATE] = FilterType.DATE",
+        ),
+        (
+            "class TopNFilter(Filter):",
+            "class TopNFilter(Filter):\n"
+            "    filterType: Literal[FilterType.TOP] = FilterType.TOP",
+        ),
+    ]
+    for old, new in filter_literals:
+        content = content.replace(old, new)
+
+    # Add TabFilter class with discriminator at the end of file
     tab_filter_code = """
-class TabFilter(RootModel[Union[
-    MatchFilter, QuantitativeNumericalFilter, QuantitativeDateFilter, SetFilter, RelativeDateFilter, TopNFilter]]):
-    root: Union[
-        MatchFilter, QuantitativeNumericalFilter, QuantitativeDateFilter, SetFilter, RelativeDateFilter, TopNFilter]
+class TabFilter(RootModel[Annotated[Union[
+    MatchFilter, QuantitativeNumericalFilter, QuantitativeDateFilter, SetFilter, RelativeDateFilter, TopNFilter, ConditionFilter],
+    PydanticField(discriminator='filterType')]]):
+    root: Annotated[Union[
+        MatchFilter, QuantitativeNumericalFilter, QuantitativeDateFilter, SetFilter, RelativeDateFilter, TopNFilter, ConditionFilter],
+        PydanticField(discriminator='filterType')]
 """
     content += tab_filter_code
 

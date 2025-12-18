@@ -13,6 +13,9 @@ if is_development:
     from src.api.openapi_generated import (
         BinField,
         CalculatedField,
+        CalculatedFilterField,
+        ConditionalFilterCondition,
+        ConditionFilter,
         DateRangeType,
         DifferenceTableCalcSpecification,
         DimensionField,
@@ -38,8 +41,13 @@ if is_development:
     )
 else:
     from vizql_data_service_py.api.openapi_generated import (  # type: ignore
+        BinField,
         CalculatedField,
+        CalculatedFilterField,
+        ConditionalFilterCondition,
+        ConditionFilter,
         DateRangeType,
+        DifferenceTableCalcSpecification,
         DimensionField,
         DimensionFilterField,
         Direction,
@@ -48,6 +56,7 @@ else:
         MatchFilter,
         MeasureField,
         MeasureFilterField,
+        Parameter,
         PeriodType,
         QuantitativeDateFilter,
         QuantitativeFilterType,
@@ -55,6 +64,9 @@ else:
         Query,
         RelativeDateFilter,
         SetFilter,
+        TableCalcField,
+        TableCalcFieldReference,
+        TableCalcType,
         TopNFilter,
     )
 
@@ -89,6 +101,42 @@ def create_dimension_filter():
                 field=DimensionFilterField(fieldCaption="Ship Mode"),
                 filterType=FilterType.SET,
                 values=["First Class", "Standard Class"],
+                exclude=False,
+            )
+        ],
+    )
+
+
+def create_dimension_filter_with_function():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Category", sortPriority=1),
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+        ],
+        filters=[
+            SetFilter(
+                field=MeasureFilterField(
+                    fieldCaption="Order Date", function=Function.MONTH
+                ),
+                filterType=FilterType.SET,
+                values=[1, 5, 9],
+                exclude=False,
+            )
+        ],
+    )
+
+
+def create_dimension_filter_with_calculation():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Category", sortPriority=1),
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+        ],
+        filters=[
+            SetFilter(
+                field=CalculatedFilterField(calculation="[Ship Mode] = 'First Class'"),
+                filterType=FilterType.SET,
+                values=[True],
                 exclude=False,
             )
         ],
@@ -154,6 +202,46 @@ def create_relative_date_filter():
     )
 
 
+def create_relative_date_filter_with_calculation():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Category", sortPriority=1),
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+        ],
+        filters=[
+            RelativeDateFilter(
+                field=CalculatedFilterField(
+                    calculation="DATEPARSE('YYYY-MM-dd', STR([Order Date]))"
+                ),
+                filterType=FilterType.DATE,
+                periodType=PeriodType.MONTHS,
+                dateRangeType=DateRangeType.CURRENT,
+                anchorDate=date(2024, 9, 1),
+            )
+        ],
+    )
+
+
+def create_relative_date_filter_with_function():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Product Name", sortPriority=1),
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+        ],
+        filters=[
+            RelativeDateFilter(
+                field=MeasureFilterField(
+                    fieldCaption="Order Date", function=Function.MIN
+                ),
+                filterType=FilterType.DATE,
+                periodType=PeriodType.MONTHS,
+                dateRangeType=DateRangeType.CURRENT,
+                anchorDate=date(2024, 9, 1),
+            )
+        ],
+    )
+
+
 def create_match_filter():
     return Query(
         fields=[
@@ -168,6 +256,60 @@ def create_match_filter():
                 endsWith="a",
                 contains="o",
                 exclude=False,
+            )
+        ],
+    )
+
+
+def create_match_filter_with_calculation():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Category", sortPriority=1),
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+        ],
+        filters=[
+            MatchFilter(
+                field=CalculatedFilterField(calculation="[State/Province]"),
+                filterType=FilterType.MATCH,
+                startsWith="A",
+            )
+        ],
+    )
+
+
+def create_quantitative_date_filter_with_calculation():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Category", sortPriority=1),
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+        ],
+        filters=[
+            QuantitativeDateFilter(
+                field=CalculatedFilterField(
+                    calculation="DATEPARSE('YYYY-MM-dd', STR([Order Date]))"
+                ),
+                filterType=FilterType.QUANTITATIVE_DATE,
+                quantitativeFilterType=QuantitativeFilterType.MIN,
+                minDate=date(2013, 5, 1),
+            )
+        ],
+    )
+
+
+def create_quantitative_date_filter_with_function():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Category", sortPriority=1),
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+        ],
+        filters=[
+            QuantitativeDateFilter(
+                field=MeasureFilterField(
+                    fieldCaption="Order Date", function=Function.TRUNC_MONTH
+                ),
+                filterType=FilterType.QUANTITATIVE_DATE,
+                quantitativeFilterType=QuantitativeFilterType.MIN,
+                minDate=date(2013, 1, 1),
             )
         ],
     )
@@ -365,7 +507,7 @@ def create_simple_table_calculation():
                 fieldCaption="Sales",
                 function=Function.SUM,
                 tableCalculation=DifferenceTableCalcSpecification(
-                    tableCalcType=TableCalcType.DIFFERENCE_FROM,
+                    tableCalcType=TableCalcType.DIFFERENCE_FROM.value,
                     dimensions=[
                         TableCalcFieldReference(fieldCaption="Region"),
                         TableCalcFieldReference(fieldCaption="Segment"),
@@ -377,22 +519,63 @@ def create_simple_table_calculation():
     )
 
 
+def create_condition_filter():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Category", sortPriority=1),
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+        ],
+        filters=[
+            ConditionFilter(
+                field=CalculatedFilterField(calculation="[State/Province]"),
+                filterType=FilterType.CONDITION,
+                condition=ConditionalFilterCondition(
+                    fieldCaption="Profit",
+                    function=Function.SUM,
+                    comparison=">",
+                    value=10000,
+                ),
+            )
+        ],
+    )
+
+
+def create_count_of_table_cal():
+    return Query(
+        fields=[
+            CalculatedField(
+                fieldCaption="Count of Rows",
+                calculation="COUNT([Orders])",
+            ),
+        ]
+    )
+
+
 QUERY_FUNCTIONS = [
     create_simple_query,
     create_custom_calculation,
     create_dimension_filter,
     create_quantitative_range_filter,
     create_quantitative_date_filter,
+    create_quantitative_date_filter_with_calculation,
+    create_quantitative_date_filter_with_function,
     create_relative_date_filter,
+    create_relative_date_filter_with_calculation,
+    create_relative_date_filter_with_function,
     create_match_filter,
+    create_match_filter_with_calculation,
     create_top_n_filter,
     create_multiple_dimension_filters,
     create_multiple_min_max_numeric_filters,
     create_dimension_numeric_filters,
+    create_dimension_filter_with_calculation,
+    create_dimension_filter_with_function,
     create_context_filter,
     create_numeric_date_dimension_filters,
     create_bin_formatting_with_parameter,
     create_new_bin_field,
     create_parameter_calculated_field,
     create_simple_table_calculation,
+    create_condition_filter,
+    create_count_of_table_cal,
 ]
