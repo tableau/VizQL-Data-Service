@@ -3,7 +3,7 @@
     "info": {
         "title": "VizQL Data Service",
         "description": "An API to query Tableau published data sources",
-        "version": "20253.0"
+        "version": "20261.0"
     },
     "servers": [
         {
@@ -72,6 +72,11 @@
                         "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/QueryOutput"
+                            }
+                        },
+                        "text/event-stream": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SseResultStream"
                             }
                         }
                     }
@@ -148,6 +153,49 @@
                     }
                 }
             }
+        },
+        "/list-supported-functions": {
+            "post": {
+                "tags": ["HeadlessBI"],
+                "operationId": "ListSupportedFunctions",
+                "summary": "List supported Tableau functions for a datasource",
+                "description": "Returns the list of Tableau function names supported for the specified datasource. The 200 response is an array of strings. Example response: [\"SUM\", \"AVG\", \"MIN\", \"MAX\"].",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ListSupportedFunctionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "List of supported function object for the datasource",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SupportedFunction"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TableauError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -201,6 +249,7 @@
                     },
                     "sortPriority": {
                         "type": "integer",
+                        "minimum": 1,
                         "description": "To enable sorting on a specific Field, provide a sortPriority for that field, and that field will be sorted. The sortPriority provides a ranking of how to sort fields when multiple fields are being sorted. The highest priority (lowest number) field is sorted first. If only one field is being sorted, then any value may be used for sortPriority. SortPriority should be an integer greater than 0."
                     }
                 }
@@ -299,7 +348,8 @@
                 "properties": {
                     "binSize": {
                         "type": "number",
-                        "description": "The size of the bin to be applied."
+                        "minimum": 1,
+                        "description": "The size of the bin to be applied. The binSize value must be greater than 0."
                     },
                     "fieldCaption": {},
                     "fieldAlias": {},
@@ -553,7 +603,7 @@
                     },
                     "previous": {
                         "type": "integer",
-                        "default": -2
+                        "default": 2
                     },
                     "next": {
                         "type": "integer",
@@ -636,6 +686,14 @@
                         "$ref": "#/components/schemas/DataType",
                         "description": "Data type of the column, i.e., \"STRING\", \"BOOLEAN\", etc."
                     },
+                    "fieldRole": {
+                        "$ref": "#/components/schemas/FieldRole",
+                        "description": "Field role of the column, i.e., \"MEASURE\", \"DIMENSION\"."
+                    },
+                    "fieldType": {
+                        "$ref": "#/components/schemas/FieldType",
+                        "description": "Field role of the column, i.e., \"CONTINUOUS\", \"NOMINAL\", \"ORDINAL\"."
+                    },
                     "defaultAggregation": {
                         "$ref": "#/components/schemas/Function",
                         "description": "The default aggregation applied to the field."
@@ -654,9 +712,41 @@
                         "type": "string",
                         "description": "The formula for this field if it is a calculation."
                     },
+                    "groupFormula": {
+                        "$ref": "#/components/schemas/GroupFormula",
+                        "description": "The group formula for this field if it is a group calculation."
+                    },
                     "logicalTableId": {
                         "type": "string",
                         "description": "An internal unique identifier for the logical table that this field originates from."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Optional description for the field."
+                    },
+
+                    "imageRole": {
+                      "$ref": "#/components/schemas/ImageRole",
+                      "description": "Optional image role for this field."
+                    },
+                    "hidden": {
+                        "type": "boolean",
+                        "description": "Indicates whether the field is hidden in the data source."
+                    },
+                    "defaultFormatting": {
+                        "$ref": "#/components/schemas/Formatting",
+                        "description": "Describing the default formatting for this field."
+                    },
+                    "isLODCalc": {
+                        "type": "boolean",
+                        "description": "Indicates whether the field is an LOD calculation."
+                    },
+                    "aliases": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FieldAlias"
+                        },
+                        "description": "A list of aliases mapping original member values to alias values."
                     }
                 }
             },
@@ -672,6 +762,39 @@
                     "SPATIAL",
                     "UNKNOWN"
                 ]
+            },
+            "FieldRole": {
+                "type": "string",
+                "enum": [
+                    "MEASURE",
+                    "DIMENSION",
+                    "UNKNOWN"
+                ]
+            },
+            "FieldType": {
+                "type": "string",
+                "enum": [
+                    "CONTINUOUS",
+                    "NOMINAL",
+                    "ORDINAL",
+                    "UNKNOWN"
+                ]
+            },
+            "ImageRole": {
+              "type": "string",
+              "enum": [
+                "URL"
+              ]
+            },
+            "Formatting": {
+                "type": "object",
+                "description": "Describing the default formatting for this field.",
+                "properties": {
+                    "decimalPlaces": {
+                        "type": "string",
+                        "description": "Number of places after decimal for a real valued field - Optional."
+                    }
+                }
             },
             "Connection": {
                 "type": "object",
@@ -721,6 +844,7 @@
                             "QUANTITATIVE_NUMERICAL",
                             "SET",
                             "MATCH",
+                            "CONDITION",
                             "DATE",
                             "TOP"
                         ]
@@ -738,12 +862,14 @@
                         "QUANTITATIVE_NUMERICAL": "#/components/schemas/QuantitativeNumericalFilter",
                         "SET": "#/components/schemas/SetFilter",
                         "MATCH": "#/components/schemas/MatchFilter",
+                        "CONDITION": "#/components/schemas/ConditionFilter",
                         "DATE": "#/components/schemas/RelativeDateFilter",
                         "TOP": "#/components/schemas/TopNFilter"
                     }
                 }
             },
             "FilterField": {
+                "x-class-extra-annotation": "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)",
                 "oneOf": [
                     {
                         "$ref": "#/components/schemas/DimensionFilterField"
@@ -847,6 +973,47 @@
                         }
                     }
                 ]
+            },
+            "ConditionFilter": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/Filter"
+                    },
+                    {
+                        "type": "object",
+                        "description": "A filter that filters based on the condition of another field.",
+                        "properties": {
+                            "condition": {
+                                "$ref": "#/components/schemas/ConditionalFilterCondition"
+                            },
+                            "calculation": {
+                                "type": "string",
+                                "description": "A alternate conditional calculation to filter upon."
+                            }
+                        }
+                    }
+                ]
+            },
+            "ConditionalFilterCondition": {
+                "type": "object",
+                "required": ["fieldCaption", "function", "comparison", "value"],
+                "properties": {
+                    "fieldCaption": {
+                        "type": "string",
+                        "description": "A Field that provide the condition for filtering."
+                    },
+                    "function": {
+                        "$ref": "#/components/schemas/Function"
+                    },
+                    "comparison": {
+                        "type": "string",
+                        "description": "The comparison operator.",
+                        "enum": [ "=", "<>", "<", "<=", ">", ">=" ]
+                    },
+                    "value": {
+                        "description": "The value of the condition. Must be a number or date or date/time string."
+                    }
+                }
             },
             "MetadataOutput": {
                 "type": "object",
@@ -977,6 +1144,15 @@
                             },
                             "returnFormat": {
                                 "$ref": "#/components/schemas/ReturnFormat"
+                            },
+                            "rowLimit": {
+                                "type": "integer",
+                                "format": "int32",
+                                "minimum": 1
+                            },
+                            "returnServerSentEvents": {
+                                "type": "boolean",
+                                "default": false
                             }
                         }
                     }
@@ -998,6 +1174,83 @@
                         "type": "boolean",
                         "default": false,
                         "description": "When true, user will pass in the Field's fieldName instead of the Field's fieldCaption in every place that fieldCaption appears (in Fields, Filters, and Calculation formulas). See FieldMetadata of the read-metadata endpoint."
+                    },
+                    "includeHiddenFields": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "When true, hidden fields will be included in the response of read-metadata endpoint."
+                    },
+                    "includeGroupFormulas": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "When true, group formula information will be included in the response of read-metadata endpoint for fields that have categorical bin data."
+                    }
+                }
+            },
+            "SseResultStream": {
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/SseMetadataEvent"
+                    },
+                    {
+                        "$ref": "#/components/schemas/SseDataEvent"
+                    },
+                    {
+                        "$ref": "#/components/schemas/SseErrorEvent"
+                    }
+                ],
+                "discriminator": {
+                    "propertyName": "event",
+                    "mapping": {
+                        "METADATA": "#/components/schemas/SseMetadataEvent",
+                        "DATA": "#/components/schemas/SseDataEvent",
+                        "ERROR": "#/components/schemas/SseErrorEvent"
+                    }
+                }
+            },
+            "SseMetadataEvent": {
+                "type": "object",
+                "required": [ "event", "data" ],
+                "properties": {
+                    "event": {
+                        "type": "string",
+                        "enum": ["METADATA"]
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "rowCount": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                }
+            },
+            "SseDataEvent": {
+                "type": "object",
+                "required": [ "event", "data" ],
+                "properties": {
+                    "event": {
+                        "type": "string",
+                        "enum": ["DATA"]
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                        }
+                    }
+                }
+            },
+            "SseErrorEvent": {
+                "type": "object",
+                "required": [ "event", "data" ],
+                "properties": {
+                    "event": {
+                        "type": "string",
+                        "enum": ["ERROR"]
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/TableauError"
                     }
                 }
             },
@@ -1008,6 +1261,9 @@
                         "type": "array",
                         "items": {
                         }
+                    },
+                    "error": {
+                        "type": "object"
                     }
                 }
             },
@@ -1184,6 +1440,35 @@
             "NullableAny": {
                 "nullable": true
             },
+            "FieldAlias": {
+                "type": "object",
+                "description": "A field alias mapping an original member value to an alias value.",
+                "required": ["member", "value"],
+                "properties": {
+                    "member": {
+                        "description": "The original member value that will be replaced."
+                    },
+                    "value": {
+                        "description": "The alias value to replace the original member with."
+                    }
+                },
+                "additionalProperties": false
+            },
+            "AliasedDataValue": {
+                "type": "object",
+                "description": "Parameter data value with alias.",
+                "x-class-extra-annotation": "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)" ,
+                "required": ["alias", "value"],
+                "properties": {
+                    "alias": {
+                        "type": "string",
+                        "description": "The alias of the data value."
+                    },
+                    "value": {
+                        "description": "The data value of the parameter."
+                    }
+                }
+            },
             "AnyValueParameter": {
                 "allOf": [
                     {
@@ -1207,7 +1492,7 @@
                     "members": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/NullableAny"
+                            "$ref": "#/components/schemas/AliasedDataValue"
                         }
                     }
                 }
@@ -1335,12 +1620,16 @@
             },
             "LogicalTable": {
                 "type": "object",
+                "x-class-extra-annotation": "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)" ,
                 "required": ["logicalTableId", "caption"],
                 "properties": {
                     "logicalTableId": {
                         "type": "string"
                     },
                     "caption": {
+                        "type": "string"
+                    },
+                    "description": {
                         "type": "string"
                     }
                 }
@@ -1354,6 +1643,10 @@
                     },
                     "toLogicalTable": {
                         "$ref": "#/components/schemas/LogicalTableRelationshipEndpoint"
+                    },
+                    "expression": {
+                        "$ref": "#/components/schemas/FieldRelationshipExpression",
+                        "description": "The expression associated with the relationship, representing how the tables are related."
                     }
                 }
             },
@@ -1363,6 +1656,154 @@
                 "properties": {
                     "logicalTableId": {
                         "type": "string"
+                    }
+                }
+            },
+            "ListSupportedFunctionRequest": {
+                "type": "object",
+                "required": [
+                    "datasource"
+                ],
+                "properties": {
+                    "datasource": {
+                        "$ref": "#/components/schemas/Datasource"
+                    },
+                    "options": {
+                        "$ref": "#/components/schemas/QueryOptions"
+                    }
+                }
+            },
+            "FunctionType": {
+                "type": "string",
+                "enum": [
+                    "UNSPECIFIED",
+                    "BOOL",
+                    "REAL",
+                    "INT",
+                    "STR",
+                    "DATETIME",
+                    "DATE",
+                    "LOCALSTR",
+                    "NULL",
+                    "ANY",
+                    "BIN",
+                    "TUPLE",
+                    "LOCALREAL",
+                    "LOCALINT",
+                    "SPATIAL",
+                    "TABLE",
+                    "ERROR"
+                ]
+            },
+            "SupportedFunctionOverload": {
+                "type": "object",
+                "description": "Describes a supported function overload for a data source.",
+                "required": ["arg_types", "return_type"],
+                "properties": {
+                    "arg_types": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FunctionType"
+                        }
+                    },
+                    "return_type": {
+                        "$ref": "#/components/schemas/FunctionType"
+                    }
+                }
+            },
+            "SupportedFunction": {
+                "type": "object",
+                "description": "Describes a supported function for a data source.",
+                "required": ["name", "overloads"],
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "overloads": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SupportedFunctionOverload"
+                        }
+                    }
+                }
+            },
+            "GroupFormula": {
+                "type": "object",
+                "description": "For a Group aka Categorical Bin field, defines how domain values are grouped together",
+                "required": ["groupings", "baseFieldName", "hasIncludeOther"],
+                "properties": {
+                  "baseFieldName": {
+                    "type": "string",
+                    "description": "The field name of the column the group is on."
+                  },
+                  "groupings": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Grouping"
+                        },
+                        "description": "A list of groupings in the group formula."
+                    },
+                    "hasIncludeOther": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "If true, all domain values not specified in a grouping will be grouped together."
+                    }
+                  }
+            },
+            "Grouping": {
+                "type": "object",
+                "description": "A grouping object that defines a group within a group formula.",
+                "required": ["members"],
+                "properties": {
+                    "alias": {
+                        "type": "string",
+                        "description": "The name of the grouping."
+                    },
+                    "members": {
+                        "type": "array",
+                        "items": {},
+                        "description": "A list of members that belong to this grouping. Members can be of any type."
+                    }
+                }
+            },
+            "FieldRelationshipExpression": {
+                "type": "object",
+                "description": "Represents a relationship expression structure with an operator and an array of relationships. This format is used to represent logical table relationships where multiple field pairs are related using a common operator.",
+                "x-class-extra-annotation": "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)",
+                "required": [ "relationships"],
+                "additionalProperties": false,
+                "properties": {
+                    "op": {
+                        "type": "string",
+                        "description": "The logical operator that combines all relationships (e.g., AND, OR)."
+                    },
+                    "relationships": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RelationshipExpressionItem"
+                        },
+                        "description": "An array of relationship items, each representing a single field-to-field relationship."
+                    }
+                }
+            },
+            "RelationshipExpressionItem": {
+                "type": "object",
+                "description": "Represents a single relationship item within a RelationshipExpression. Defines a relationship between two fields using an operator.",
+                "required": ["operator", "fromField", "toField"],
+                "additionalProperties": false,
+                "properties": {
+                    "operator": {
+                        "type": "string",
+                        "description": "The comparison operator used in this relationship (e.g., =, <>, >, <, >=, <=).",
+                        "enum": ["=", "<>", ">", "<", ">=", "<="]
+                    },
+                    "fromField": {
+                        "type": "string",
+                        "description": "The field reference from which the relationship originates (e.g., [Order ID]). Field references are typically enclosed in square brackets."
+                    },
+                    "toField": {
+                        "type": "string",
+                        "description": "The field reference to which the relationship targets (e.g., [Order ID (Returns)]). Field references are typically enclosed in square brackets."
                     }
                 }
             }
