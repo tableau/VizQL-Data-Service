@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-        "url": "/vizql-data-service/v1"
+        "url": "/api/v1/vizql-data-service"
         }
     ],
     "paths": {
