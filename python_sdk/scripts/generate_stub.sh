@@ -6,7 +6,7 @@ set -e
 # Print commands as they are executed
 set -x
 
-pip install datamodel-code-generator
+pip install datamodel-code-generator==0.43.1
 
 # Generate client code
 datamodel-codegen --input ../VizQLDataServiceOpenAPISchema.json --output-model-type pydantic_v2.BaseModel --input-file-type openapi --output src/api/openapi_generated-raw.py --use-annotated --base-class TableauModel
