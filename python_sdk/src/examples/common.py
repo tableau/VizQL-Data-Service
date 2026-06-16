@@ -112,6 +112,11 @@ def create_datasource(luid: str) -> Datasource:
     return Datasource(datasourceLuid=luid)
 
 
+def create_datasource_by_workbook_id(workbook_datasource_id: str) -> Datasource:
+    """Create a Datasource referenced by its workbookDatasourceId instead of LUID."""
+    return Datasource(workbookDatasourceId=workbook_datasource_id)
+
+
 def handle_response(response, query_name, verbose=False):
     """Handle the response from the API."""
     print(f"\n{query_name} Response:")

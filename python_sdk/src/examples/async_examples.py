@@ -23,7 +23,10 @@ if is_development:
         QueryRequest,
         ReadMetadataRequest,
     )
-    from src.examples.payload import QUERY_FUNCTIONS
+    from src.examples.payload import (
+        QUERY_FUNCTIONS,
+        create_query_options_with_new_session,
+    )
 else:
     import vizql_data_service_py.examples.common as common  # type: ignore
     from vizql_data_service_py.api import (  # type: ignore
@@ -37,7 +40,10 @@ else:
         QueryRequest,
         ReadMetadataRequest,
     )
-    from vizql_data_service_py.examples.payload import QUERY_FUNCTIONS  # type: ignore
+    from vizql_data_service_py.examples.payload import (  # type: ignore
+        QUERY_FUNCTIONS,
+        create_query_options_with_new_session,
+    )
 
 
 async def execute(args):
@@ -73,10 +79,18 @@ async def execute(args):
         except Exception as e:
             common.handle_error(e, "ReadMetadata Query", args.verbose)
 
-        # Query data source examples
-        async def execute_query(query_func):
+        # Query data source examples. The first query opts into a fresh session
+        # via QueryDatasourceOptions.withNewSession to demonstrate the option.
+        async def execute_query(query_func, with_new_session=False):
             try:
-                query_request = QueryRequest(query=query_func(), datasource=datasource)
+                options = (
+                    create_query_options_with_new_session()
+                    if with_new_session
+                    else None
+                )
+                query_request = QueryRequest(
+                    query=query_func(), datasource=datasource, options=options
+                )
                 print(f"\n=== ExecuteQuery: {query_func.__name__} ===")
                 if args.verbose:
                     print(f"Request Body: {query_request}")
@@ -92,8 +106,8 @@ async def execute(args):
                 common.handle_error(e, f"Query {query_func.__name__}", args.verbose)
 
         # Execute queries sequentially
-        for query_func in QUERY_FUNCTIONS:
-            await execute_query(query_func)
+        for index, query_func in enumerate(QUERY_FUNCTIONS):
+            await execute_query(query_func, with_new_session=(index == 0))
 
         # Get datasource model example
         try:

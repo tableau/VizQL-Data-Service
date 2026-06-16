@@ -32,6 +32,7 @@ if is_development:
         QuantitativeFilterType,
         QuantitativeNumericalFilter,
         Query,
+        QueryDatasourceOptions,
         RelativeDateFilter,
         SetFilter,
         TableCalcField,
@@ -62,6 +63,7 @@ else:
         QuantitativeFilterType,
         QuantitativeNumericalFilter,
         Query,
+        QueryDatasourceOptions,
         RelativeDateFilter,
         SetFilter,
         TableCalcField,
@@ -549,6 +551,11 @@ def create_count_of_table_cal():
             ),
         ]
     )
+
+
+def create_query_options_with_new_session() -> QueryDatasourceOptions:
+    """Build QueryDatasourceOptions that opt into a fresh datasource session per query."""
+    return QueryDatasourceOptions(withNewSession=True)
 
 
 QUERY_FUNCTIONS = [

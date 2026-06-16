@@ -23,7 +23,10 @@ if is_development:
         QueryRequest,
         ReadMetadataRequest,
     )
-    from src.examples.payload import QUERY_FUNCTIONS
+    from src.examples.payload import (
+        QUERY_FUNCTIONS,
+        create_query_options_with_new_session,
+    )
 else:
     import vizql_data_service_py.examples.common as common  # type: ignore
     from vizql_data_service_py.api import (  # type: ignore
@@ -37,7 +40,10 @@ else:
         QueryRequest,
         ReadMetadataRequest,
     )
-    from vizql_data_service_py.examples.payload import QUERY_FUNCTIONS  # type: ignore
+    from vizql_data_service_py.examples.payload import (  # type: ignore
+        QUERY_FUNCTIONS,
+        create_query_options_with_new_session,
+    )
 
 
 def execute(args):
@@ -73,10 +79,16 @@ def execute(args):
         except Exception as e:
             common.handle_error(e, "ReadMetadata Query", args.verbose)
 
-        # Query data source examples
-        for query_func in QUERY_FUNCTIONS:
+        # Query data source examples. The first query opts into a fresh session
+        # via QueryDatasourceOptions.withNewSession to demonstrate the option.
+        for index, query_func in enumerate(QUERY_FUNCTIONS):
             try:
-                query_request = QueryRequest(query=query_func(), datasource=datasource)
+                options = (
+                    create_query_options_with_new_session() if index == 0 else None
+                )
+                query_request = QueryRequest(
+                    query=query_func(), datasource=datasource, options=options
+                )
                 response = query_datasource.sync_detailed(
                     client=client, body=query_request
                 )

@@ -1,21 +1,29 @@
 import datetime
 
 import pytest
+from pydantic import ValidationError
 
 from src.api.openapi_generated import (
+    Datasource,
     DataType,
     DateRangeType,
     DimensionField,
+    FieldRole,
+    FieldType,
     FilterType,
     Function,
+    Grouping,
+    ImageRole,
     MeasureField,
     MetadataOutput,
     ParameterType,
     PeriodType,
     QuantitativeFilterType,
     QuantitativeRangeParameter,
+    QueryDatasourceOptions,
     QueryRequest,
     ReadMetadataRequest,
+    TableCalcComputedAggregation,
 )
 
 
@@ -284,3 +292,82 @@ def test_query_request_to_dict(sample_query_request):
     assert set_filter["values"] == ["First Class"]
     assert set_filter["exclude"] is False
     assert set_filter["field"]["fieldCaption"] == "Ship Mode"
+
+
+def test_datasource_accepts_workbook_datasource_id_without_luid():
+    """Datasource may now be constructed with only workbookDatasourceId (datasourceLuid is no longer required)."""
+    datasource = Datasource.model_validate(
+        {"workbookDatasourceId": "Sample - Superstore"}
+    )
+    assert datasource.datasourceLuid is None
+    assert datasource.workbookDatasourceId == "Sample - Superstore"
+
+    dumped = datasource.model_dump(exclude_none=True)
+    assert dumped == {"workbookDatasourceId": "Sample - Superstore"}
+
+
+def test_query_datasource_options_with_new_session():
+    """QueryDatasourceOptions exposes the new withNewSession flag."""
+    options = QueryDatasourceOptions.model_validate({"withNewSession": True})
+    assert options.withNewSession is True
+
+    default_options = QueryDatasourceOptions()
+    assert default_options.withNewSession is False
+
+
+def test_grouping_requires_alias():
+    """Grouping.alias is required; omitting it must raise ValidationError."""
+    Grouping.model_validate({"alias": "Mid-Atlantic", "members": ["NJ", "NY"]})
+
+    with pytest.raises(ValidationError) as exc_info:
+        Grouping.model_validate({"members": ["NJ", "NY"]})
+    assert "alias" in str(exc_info.value)
+
+
+def test_quantitative_range_parameter_requires_parameter_name():
+    """ParameterRecord.parameterName is required; omitting it must raise ValidationError."""
+    valid_payload = {
+        "parameterType": "QUANTITATIVE_RANGE",
+        "parameterName": "Parameter 1",
+        "parameterCaption": "Top Customers",
+        "dataType": "INTEGER",
+        "value": 5.0,
+        "min": 5.0,
+        "max": 20.0,
+    }
+    QuantitativeRangeParameter.model_validate(valid_payload)
+
+    missing_name = {k: v for k, v in valid_payload.items() if k != "parameterName"}
+    with pytest.raises(ValidationError) as exc_info:
+        QuantitativeRangeParameter.model_validate(missing_name)
+    assert "parameterName" in str(exc_info.value)
+
+
+def test_unspecified_enum_members_present():
+    """Schema 262 adds UNSPECIFIED to several enums; verify they exist and round-trip."""
+    assert DataType.UNSPECIFIED.value == "UNSPECIFIED"
+    assert FieldRole.UNSPECIFIED.value == "UNSPECIFIED"
+    assert FieldType.UNSPECIFIED.value == "UNSPECIFIED"
+    assert ImageRole.UNSPECIFIED.value == "UNSPECIFIED"
+    assert PeriodType.UNSPECIFIED.value == "UNSPECIFIED"
+    assert TableCalcComputedAggregation.UNSPECIFIED.value == "UNSPECIFIED"
+
+    output = MetadataOutput.model_validate(
+        {
+            "data": [
+                {
+                    "fieldName": "Mystery",
+                    "fieldCaption": "Mystery",
+                    "dataType": "UNSPECIFIED",
+                    "fieldRole": "UNSPECIFIED",
+                    "fieldType": "UNSPECIFIED",
+                    "imageRole": "UNSPECIFIED",
+                }
+            ]
+        }
+    )
+    field_metadata = output.data[0]
+    assert field_metadata.dataType == DataType.UNSPECIFIED
+    assert field_metadata.fieldRole == FieldRole.UNSPECIFIED
+    assert field_metadata.fieldType == FieldType.UNSPECIFIED
+    assert field_metadata.imageRole == ImageRole.UNSPECIFIED
