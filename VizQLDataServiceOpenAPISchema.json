@@ -728,7 +728,8 @@
                         "type": "string",
                         "description": "Optional description for the field."
                     },
-                     "imageRole": {
+
+                    "imageRole": {
                       "$ref": "#/components/schemas/ImageRole",
                       "description": "Optional image role for this field."
                     },
@@ -1646,7 +1647,7 @@
                         "type": "string"
                     },
                     "description": {
-                      "type": "string"
+                        "type": "string"
                     }
                 }
             },
