@@ -17,7 +17,6 @@ if is_development:
         ConditionalFilterCondition,
         ConditionFilter,
         Datasource,
-        DataType,
         DateRangeType,
         DifferenceTableCalcSpecification,
         DimensionField,
@@ -25,19 +24,17 @@ if is_development:
         Direction,
         FilterType,
         Function,
-        Grouping,
-        ListParameter,
         MatchFilter,
         MeasureField,
         MeasureFilterField,
         Parameter,
-        ParameterType,
         PeriodType,
         QuantitativeDateFilter,
         QuantitativeFilterType,
         QuantitativeNumericalFilter,
         Query,
         QueryDatasourceOptions,
+        QueryRequest,
         RelativeDateFilter,
         SetFilter,
         TableCalcField,
@@ -53,7 +50,6 @@ else:
         ConditionalFilterCondition,
         ConditionFilter,
         Datasource,
-        DataType,
         DateRangeType,
         DifferenceTableCalcSpecification,
         DimensionField,
@@ -61,19 +57,17 @@ else:
         Direction,
         FilterType,
         Function,
-        Grouping,
-        ListParameter,
         MatchFilter,
         MeasureField,
         MeasureFilterField,
         Parameter,
-        ParameterType,
         PeriodType,
         QuantitativeDateFilter,
         QuantitativeFilterType,
         QuantitativeNumericalFilter,
         Query,
         QueryDatasourceOptions,
+        QueryRequest,
         RelativeDateFilter,
         SetFilter,
         TableCalcField,
@@ -563,72 +557,37 @@ def create_count_of_table_cal():
     )
 
 
-def create_query_with_unspecified_function():
-    """Demonstrate the new UNSPECIFIED enum value on Function (262 schema)."""
+def create_period_type_unspecified_filter():
     return Query(
         fields=[
-            DimensionField(fieldCaption="Category"),
-            MeasureField(fieldCaption="Sales", function=Function.UNSPECIFIED),
-        ]
-    )
-
-
-def create_query_with_workbook_datasource_id():
-    """Build a Datasource using the new workbookDatasourceId field (262 schema).
-
-    The runner constructs its own Datasource from a LUID and ignores anything
-    returned beyond the Query, so we instantiate the Datasource here purely to
-    exercise the schema field.
-    """
-    Datasource(workbookDatasourceId="orders__superstore")
-    return create_simple_query()
-
-
-def create_query_with_new_session_options():
-    """Build QueryDatasourceOptions opting into a fresh session (262 schema).
-
-    QueryDatasourceOptions lives on QueryRequest, not on Query, so the runner
-    won't transmit it. We instantiate it here to exercise the new field.
-    """
-    QueryDatasourceOptions(withNewSession=True)
-    return create_simple_query()
-
-
-def create_query_with_named_list_parameter():
-    """Demonstrate the now-required ParameterRecord.parameterName (262 schema).
-
-    ParameterRecord is part of metadata responses rather than a Query input, so
-    we build a ListParameter here only to validate the schema requires
-    parameterName alongside parameterType, parameterCaption, value, dataType.
-    """
-    ListParameter(
-        parameterType=ParameterType.LIST,
-        parameterName="profit_bin_size",
-        parameterCaption="Profit Bin Size",
-        dataType=DataType.INTEGER,
-        value=200,
-    )
-    return Query(
-        fields=[
-            DimensionField(fieldCaption="Category"),
-            CalculatedField(
-                fieldCaption="Binned Profit",
-                calculation="INT([Profit] / [Profit Bin Size]) * [Profit Bin Size]",
-            ),
+            DimensionField(fieldCaption="Category", sortPriority=1),
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
         ],
-        parameters=[Parameter(parameterCaption="Profit Bin Size", value=200)],
+        filters=[
+            RelativeDateFilter(
+                field=DimensionFilterField(fieldCaption="Order Date"),
+                filterType=FilterType.DATE,
+                periodType=PeriodType.UNSPECIFIED,
+                dateRangeType=DateRangeType.CURRENT,
+                anchorDate=date(2024, 1, 1),
+            )
+        ],
     )
 
 
-def create_query_with_grouping_alias():
-    """Demonstrate the now-required Grouping.alias (262 schema).
+def create_workbook_datasource_id_request():
+    return QueryRequest(
+        query=create_simple_query(),
+        datasource=Datasource(workbookDatasourceId="orders__superstore"),
+    )
 
-    Grouping objects are returned inside GroupFormula on column metadata, so
-    they aren't part of an outbound Query payload. We construct one here purely
-    to exercise the new required `alias` field.
-    """
-    Grouping(alias="High Value", members=["First Class", "Same Day"])
-    return create_simple_query()
+
+def create_with_new_session_options_request():
+    return QueryRequest(
+        query=create_simple_query(),
+        datasource=Datasource(),
+        options=QueryDatasourceOptions(withNewSession=True),
+    )
 
 
 QUERY_FUNCTIONS = [
@@ -658,9 +617,7 @@ QUERY_FUNCTIONS = [
     create_simple_table_calculation,
     create_condition_filter,
     create_count_of_table_cal,
-    create_query_with_unspecified_function,
-    create_query_with_workbook_datasource_id,
-    create_query_with_new_session_options,
-    create_query_with_named_list_parameter,
-    create_query_with_grouping_alias,
+    create_period_type_unspecified_filter,
+    create_workbook_datasource_id_request,
+    create_with_new_session_options_request,
 ]
