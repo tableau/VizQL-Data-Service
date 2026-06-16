@@ -20,7 +20,6 @@ if is_development:
     from src.api.client import VizQLDataServiceClient
     from src.api.openapi_generated import (
         GetDatasourceModelRequest,
-        Query,
         QueryRequest,
         ReadMetadataRequest,
     )
@@ -35,7 +34,6 @@ else:
     from vizql_data_service_py.api.client import VizQLDataServiceClient  # type: ignore
     from vizql_data_service_py.api.openapi_generated import (  # type: ignore
         GetDatasourceModelRequest,
-        Query,
         QueryRequest,
         ReadMetadataRequest,
     )
@@ -78,18 +76,7 @@ def execute(args):
         # Query data source examples
         for query_func in QUERY_FUNCTIONS:
             try:
-                result = query_func()
-                if isinstance(result, Query):
-                    query_request = QueryRequest(query=result, datasource=datasource)
-                elif isinstance(result, QueryRequest):
-                    query_request = result
-                    if not query_request.datasource.model_dump(exclude_none=True):
-                        query_request.datasource = datasource
-                else:
-                    raise TypeError(
-                        f"{query_func.__name__} must return Query or QueryRequest, "
-                        f"got {type(result).__name__}"
-                    )
+                query_request = QueryRequest(query=query_func(), datasource=datasource)
                 response = query_datasource.sync_detailed(
                     client=client, body=query_request
                 )

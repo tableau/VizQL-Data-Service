@@ -16,7 +16,6 @@ if is_development:
         CalculatedFilterField,
         ConditionalFilterCondition,
         ConditionFilter,
-        Datasource,
         DateRangeType,
         DifferenceTableCalcSpecification,
         DimensionField,
@@ -33,8 +32,6 @@ if is_development:
         QuantitativeFilterType,
         QuantitativeNumericalFilter,
         Query,
-        QueryDatasourceOptions,
-        QueryRequest,
         RelativeDateFilter,
         SetFilter,
         TableCalcField,
@@ -49,7 +46,6 @@ else:
         CalculatedFilterField,
         ConditionalFilterCondition,
         ConditionFilter,
-        Datasource,
         DateRangeType,
         DifferenceTableCalcSpecification,
         DimensionField,
@@ -66,8 +62,6 @@ else:
         QuantitativeFilterType,
         QuantitativeNumericalFilter,
         Query,
-        QueryDatasourceOptions,
-        QueryRequest,
         RelativeDateFilter,
         SetFilter,
         TableCalcField,
@@ -575,21 +569,6 @@ def create_period_type_unspecified_filter():
     )
 
 
-def create_workbook_datasource_id_request():
-    return QueryRequest(
-        query=create_simple_query(),
-        datasource=Datasource(workbookDatasourceId="orders__superstore"),
-    )
-
-
-def create_with_new_session_options_request():
-    return QueryRequest(
-        query=create_simple_query(),
-        datasource=Datasource(),
-        options=QueryDatasourceOptions(withNewSession=True),
-    )
-
-
 QUERY_FUNCTIONS = [
     create_simple_query,
     create_custom_calculation,
@@ -618,6 +597,4 @@ QUERY_FUNCTIONS = [
     create_condition_filter,
     create_count_of_table_cal,
     create_period_type_unspecified_filter,
-    create_workbook_datasource_id_request,
-    create_with_new_session_options_request,
 ]

@@ -3,6 +3,7 @@ import datetime
 import pytest
 
 from src.api.openapi_generated import (
+    Datasource,
     DataType,
     DateRangeType,
     DimensionField,
@@ -14,6 +15,8 @@ from src.api.openapi_generated import (
     PeriodType,
     QuantitativeFilterType,
     QuantitativeRangeParameter,
+    Query,
+    QueryDatasourceOptions,
     QueryRequest,
     ReadMetadataRequest,
 )
@@ -284,3 +287,45 @@ def test_query_request_to_dict(sample_query_request):
     assert set_filter["values"] == ["First Class"]
     assert set_filter["exclude"] is False
     assert set_filter["field"]["fieldCaption"] == "Ship Mode"
+
+
+def test_datasource_luid_no_longer_required():
+    """Test Datasource() with no fields is legal."""
+    datasource = Datasource()
+    assert datasource.datasourceLuid is None
+    assert datasource.workbookDatasourceId is None
+
+
+def test_datasource_workbook_datasource_id():
+    """Test Datasource accepts workbookDatasourceId in lieu of datasourceLuid."""
+    datasource = Datasource(workbookDatasourceId="orders__superstore")
+    assert datasource.datasourceLuid is None
+    assert datasource.workbookDatasourceId == "orders__superstore"
+
+
+def test_query_request_with_workbook_datasource_id():
+    """Test QueryRequest builds and serializes with workbookDatasourceId-only datasource."""
+    request = QueryRequest(
+        query=Query(fields=[DimensionField(fieldCaption="Category")]),
+        datasource=Datasource(workbookDatasourceId="orders__superstore"),
+    )
+    request_dict = request.model_dump(exclude_none=True)
+    assert request_dict["datasource"] == {"workbookDatasourceId": "orders__superstore"}
+    assert "datasourceLuid" not in request_dict["datasource"]
+
+
+def test_query_datasource_options_with_new_session():
+    """Test QueryDatasourceOptions exposes the withNewSession flag."""
+    options = QueryDatasourceOptions(withNewSession=True)
+    assert options.withNewSession is True
+
+
+def test_query_request_with_new_session_options():
+    """Test QueryRequest serializes withNewSession when set on options."""
+    request = QueryRequest(
+        query=Query(fields=[DimensionField(fieldCaption="Category")]),
+        datasource=Datasource(datasourceLuid="abc"),
+        options=QueryDatasourceOptions(withNewSession=True),
+    )
+    request_dict = request.model_dump(exclude_none=True)
+    assert request_dict["options"]["withNewSession"] is True

@@ -1182,8 +1182,8 @@
                         "default": false
                     },
                     "withNewSession": {
-                      "type": "boolean",
-                      "default": false
+                        "type": "boolean",
+                        "default": false
                     },
                     "interpretFieldCaptionsAsFieldNames": {
                         "type": "boolean",
