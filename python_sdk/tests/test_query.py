@@ -289,7 +289,7 @@ def test_query_request_to_dict(sample_query_request):
     assert set_filter["field"]["fieldCaption"] == "Ship Mode"
 
 
-def test_datasource_luid_no_longer_required():
+def test_datasource_luid_not_required():
     """Test Datasource() with no fields is legal."""
     datasource = Datasource()
     assert datasource.datasourceLuid is None
@@ -298,19 +298,25 @@ def test_datasource_luid_no_longer_required():
 
 def test_datasource_workbook_datasource_id():
     """Test Datasource accepts workbookDatasourceId in lieu of datasourceLuid."""
-    datasource = Datasource(workbookDatasourceId="orders__superstore")
+    datasource = Datasource(
+        workbookDatasourceId="federated.10nnk8d1vgmw8q17yu76u06pnbcj"
+    )
     assert datasource.datasourceLuid is None
-    assert datasource.workbookDatasourceId == "orders__superstore"
+    assert datasource.workbookDatasourceId == "federated.10nnk8d1vgmw8q17yu76u06pnbcj"
 
 
 def test_query_request_with_workbook_datasource_id():
     """Test QueryRequest builds and serializes with workbookDatasourceId-only datasource."""
     request = QueryRequest(
         query=Query(fields=[DimensionField(fieldCaption="Category")]),
-        datasource=Datasource(workbookDatasourceId="orders__superstore"),
+        datasource=Datasource(
+            workbookDatasourceId="federated.10nnk8d1vgmw8q17yu76u06pnbcj"
+        ),
     )
     request_dict = request.model_dump(exclude_none=True)
-    assert request_dict["datasource"] == {"workbookDatasourceId": "orders__superstore"}
+    assert request_dict["datasource"] == {
+        "workbookDatasourceId": "federated.10nnk8d1vgmw8q17yu76u06pnbcj"
+    }
     assert "datasourceLuid" not in request_dict["datasource"]
 
 

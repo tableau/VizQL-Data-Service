@@ -26,14 +26,20 @@ if is_development:
         MatchFilter,
         MeasureField,
         MeasureFilterField,
+        MovingTableCalcSpecification,
         Parameter,
         PeriodType,
         QuantitativeDateFilter,
         QuantitativeFilterType,
         QuantitativeNumericalFilter,
         Query,
+        RankTableCalcSpecification,
+        RankType,
         RelativeDateFilter,
+        RelativeTo,
+        RunningTotalTableCalcSpecification,
         SetFilter,
+        TableCalcComputedAggregation,
         TableCalcField,
         TableCalcFieldReference,
         TableCalcType,
@@ -56,14 +62,20 @@ else:
         MatchFilter,
         MeasureField,
         MeasureFilterField,
+        MovingTableCalcSpecification,
         Parameter,
         PeriodType,
         QuantitativeDateFilter,
         QuantitativeFilterType,
         QuantitativeNumericalFilter,
         Query,
+        RankTableCalcSpecification,
+        RankType,
         RelativeDateFilter,
+        RelativeTo,
+        RunningTotalTableCalcSpecification,
         SetFilter,
+        TableCalcComputedAggregation,
         TableCalcField,
         TableCalcFieldReference,
         TableCalcType,
@@ -569,6 +581,78 @@ def create_period_type_unspecified_filter():
     )
 
 
+def create_relative_to_unspecified_table_calc():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Region", sortPriority=1),
+            DimensionField(fieldCaption="Segment", sortPriority=2),
+            TableCalcField(
+                fieldCaption="Sales",
+                function=Function.SUM,
+                tableCalculation=DifferenceTableCalcSpecification(
+                    tableCalcType=TableCalcType.DIFFERENCE_FROM.value,
+                    dimensions=[
+                        TableCalcFieldReference(fieldCaption="Region"),
+                        TableCalcFieldReference(fieldCaption="Segment"),
+                    ],
+                    relativeTo=RelativeTo.UNSPECIFIED,
+                ),
+            ),
+        ]
+    )
+
+
+def create_rank_type_unspecified_table_calc():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Region", sortPriority=1),
+            TableCalcField(
+                fieldCaption="Sales",
+                function=Function.SUM,
+                tableCalculation=RankTableCalcSpecification(
+                    tableCalcType=TableCalcType.RANK.value,
+                    dimensions=[TableCalcFieldReference(fieldCaption="Region")],
+                    rankType=RankType.UNSPECIFIED,
+                ),
+            ),
+        ]
+    )
+
+
+def create_running_total_aggregation_unspecified_table_calc():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Region", sortPriority=1),
+            TableCalcField(
+                fieldCaption="Sales",
+                function=Function.SUM,
+                tableCalculation=RunningTotalTableCalcSpecification(
+                    tableCalcType=TableCalcType.RUNNING_TOTAL.value,
+                    dimensions=[TableCalcFieldReference(fieldCaption="Region")],
+                    aggregation=TableCalcComputedAggregation.UNSPECIFIED,
+                ),
+            ),
+        ]
+    )
+
+
+def create_moving_aggregation_unspecified_table_calc():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Region", sortPriority=1),
+            TableCalcField(
+                fieldCaption="Sales",
+                function=Function.SUM,
+                tableCalculation=MovingTableCalcSpecification(
+                    tableCalcType=TableCalcType.MOVING_CALCULATION.value,
+                    dimensions=[TableCalcFieldReference(fieldCaption="Region")],
+                    aggregation=TableCalcComputedAggregation.UNSPECIFIED,
+                ),
+            ),
+        ]
+    )
+
+
 QUERY_FUNCTIONS = [
     create_simple_query,
     create_custom_calculation,
@@ -597,4 +681,8 @@ QUERY_FUNCTIONS = [
     create_condition_filter,
     create_count_of_table_cal,
     create_period_type_unspecified_filter,
+    create_relative_to_unspecified_table_calc,
+    create_rank_type_unspecified_table_calc,
+    create_running_total_aggregation_unspecified_table_calc,
+    create_moving_aggregation_unspecified_table_calc,
 ]
