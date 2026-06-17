@@ -3,11 +3,11 @@
     "info": {
         "title": "VizQL Data Service",
         "description": "An API to query Tableau published data sources",
-        "version": "1.0"
+        "version": "20262.0"
     },
     "servers": [
         {
-        "url": "/vizql-data-service/v1"
+        "url": "/api/v1/vizql-data-service"
         }
     ],
     "paths": {
