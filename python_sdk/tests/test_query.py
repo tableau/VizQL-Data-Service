@@ -24,7 +24,6 @@ from src.api.openapi_generated import (
     RelativeDateFilter,
     RunningTotalTableCalcSpecification,
     TableCalcComputedAggregation,
-    TableCalcField,
     TableCalcFieldReference,
     TableCalcType,
 )
