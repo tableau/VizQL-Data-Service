@@ -7,10 +7,12 @@ from src.api.openapi_generated import (
     DataType,
     DateRangeType,
     DimensionField,
+    DimensionFilterField,
     FilterType,
     Function,
     MeasureField,
     MetadataOutput,
+    MovingTableCalcSpecification,
     ParameterType,
     PeriodType,
     QuantitativeFilterType,
@@ -19,6 +21,12 @@ from src.api.openapi_generated import (
     QueryDatasourceOptions,
     QueryRequest,
     ReadMetadataRequest,
+    RelativeDateFilter,
+    RunningTotalTableCalcSpecification,
+    TableCalcComputedAggregation,
+    TableCalcField,
+    TableCalcFieldReference,
+    TableCalcType,
 )
 
 
@@ -298,24 +306,20 @@ def test_datasource_luid_not_required():
 
 def test_datasource_workbook_datasource_id():
     """Test Datasource accepts workbookDatasourceId in lieu of datasourceLuid."""
-    datasource = Datasource(
-        workbookDatasourceId="federated.10nnk8d1vgmw8q17yu76u06pnbcj"
-    )
+    datasource = Datasource(workbookDatasourceId="sampleWorkbookDatasourceId")
     assert datasource.datasourceLuid is None
-    assert datasource.workbookDatasourceId == "federated.10nnk8d1vgmw8q17yu76u06pnbcj"
+    assert datasource.workbookDatasourceId == "sampleWorkbookDatasourceId"
 
 
 def test_query_request_with_workbook_datasource_id():
     """Test QueryRequest builds and serializes with workbookDatasourceId-only datasource."""
     request = QueryRequest(
         query=Query(fields=[DimensionField(fieldCaption="Category")]),
-        datasource=Datasource(
-            workbookDatasourceId="federated.10nnk8d1vgmw8q17yu76u06pnbcj"
-        ),
+        datasource=Datasource(workbookDatasourceId="sampleWorkbookDatasourceId"),
     )
     request_dict = request.model_dump(exclude_none=True)
     assert request_dict["datasource"] == {
-        "workbookDatasourceId": "federated.10nnk8d1vgmw8q17yu76u06pnbcj"
+        "workbookDatasourceId": "sampleWorkbookDatasourceId"
     }
     assert "datasourceLuid" not in request_dict["datasource"]
 
@@ -335,3 +339,45 @@ def test_query_request_with_new_session_options():
     )
     request_dict = request.model_dump(exclude_none=True)
     assert request_dict["options"]["withNewSession"] is True
+
+
+def test_period_type_unspecified_serializes_to_wire():
+    """RelativeDateFilter accepts and serializes PeriodType.UNSPECIFIED literally."""
+    filter_ = RelativeDateFilter(
+        field=DimensionFilterField(fieldCaption="Order Date"),
+        filterType=FilterType.DATE,
+        periodType=PeriodType.UNSPECIFIED,
+        dateRangeType=DateRangeType.CURRENT,
+        anchorDate=datetime.date(2024, 1, 1),
+    )
+    assert filter_.periodType == PeriodType.UNSPECIFIED
+    assert (
+        filter_.model_dump(mode="json", exclude_none=True)["periodType"]
+        == "UNSPECIFIED"
+    )
+
+
+def test_running_total_aggregation_unspecified_serializes_to_wire():
+    """RunningTotalTableCalcSpecification serializes aggregation=UNSPECIFIED literally."""
+    spec = RunningTotalTableCalcSpecification(
+        tableCalcType=TableCalcType.RUNNING_TOTAL.value,
+        dimensions=[TableCalcFieldReference(fieldCaption="Region")],
+        aggregation=TableCalcComputedAggregation.UNSPECIFIED,
+    )
+    assert spec.aggregation == TableCalcComputedAggregation.UNSPECIFIED
+    assert (
+        spec.model_dump(mode="json", exclude_none=True)["aggregation"] == "UNSPECIFIED"
+    )
+
+
+def test_moving_aggregation_unspecified_serializes_to_wire():
+    """MovingTableCalcSpecification serializes aggregation=UNSPECIFIED literally."""
+    spec = MovingTableCalcSpecification(
+        tableCalcType=TableCalcType.MOVING_CALCULATION.value,
+        dimensions=[TableCalcFieldReference(fieldCaption="Region")],
+        aggregation=TableCalcComputedAggregation.UNSPECIFIED,
+    )
+    assert spec.aggregation == TableCalcComputedAggregation.UNSPECIFIED
+    assert (
+        spec.model_dump(mode="json", exclude_none=True)["aggregation"] == "UNSPECIFIED"
+    )

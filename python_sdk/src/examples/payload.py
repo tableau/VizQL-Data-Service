@@ -563,24 +563,6 @@ def create_count_of_table_cal():
     )
 
 
-def create_period_type_unspecified_filter():
-    return Query(
-        fields=[
-            DimensionField(fieldCaption="Category", sortPriority=1),
-            MeasureField(fieldCaption="Sales", function=Function.SUM),
-        ],
-        filters=[
-            RelativeDateFilter(
-                field=DimensionFilterField(fieldCaption="Order Date"),
-                filterType=FilterType.DATE,
-                periodType=PeriodType.UNSPECIFIED,
-                dateRangeType=DateRangeType.CURRENT,
-                anchorDate=date(2024, 1, 1),
-            )
-        ],
-    )
-
-
 def create_relative_to_unspecified_table_calc():
     return Query(
         fields=[
@@ -619,7 +601,7 @@ def create_rank_type_unspecified_table_calc():
     )
 
 
-def create_running_total_aggregation_unspecified_table_calc():
+def create_running_total_aggregation_table_calc():
     return Query(
         fields=[
             DimensionField(fieldCaption="Region", sortPriority=1),
@@ -629,14 +611,14 @@ def create_running_total_aggregation_unspecified_table_calc():
                 tableCalculation=RunningTotalTableCalcSpecification(
                     tableCalcType=TableCalcType.RUNNING_TOTAL.value,
                     dimensions=[TableCalcFieldReference(fieldCaption="Region")],
-                    aggregation=TableCalcComputedAggregation.UNSPECIFIED,
+                    aggregation=TableCalcComputedAggregation.SUM,
                 ),
             ),
         ]
     )
 
 
-def create_moving_aggregation_unspecified_table_calc():
+def create_moving_aggregation_table_calc():
     return Query(
         fields=[
             DimensionField(fieldCaption="Region", sortPriority=1),
@@ -646,7 +628,7 @@ def create_moving_aggregation_unspecified_table_calc():
                 tableCalculation=MovingTableCalcSpecification(
                     tableCalcType=TableCalcType.MOVING_CALCULATION.value,
                     dimensions=[TableCalcFieldReference(fieldCaption="Region")],
-                    aggregation=TableCalcComputedAggregation.UNSPECIFIED,
+                    aggregation=TableCalcComputedAggregation.SUM,
                 ),
             ),
         ]
@@ -680,9 +662,8 @@ QUERY_FUNCTIONS = [
     create_simple_table_calculation,
     create_condition_filter,
     create_count_of_table_cal,
-    create_period_type_unspecified_filter,
     create_relative_to_unspecified_table_calc,
     create_rank_type_unspecified_table_calc,
-    create_running_total_aggregation_unspecified_table_calc,
-    create_moving_aggregation_unspecified_table_calc,
+    create_running_total_aggregation_table_calc,
+    create_moving_aggregation_table_calc,
 ]
