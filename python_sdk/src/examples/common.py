@@ -187,14 +187,14 @@ def create_server(
     # Check for JWT authentication
     if jwt_token:
         auth: Union[TSC.JWTAuth, TSC.PersonalAccessTokenAuth, TSC.TableauAuth] = (
-            TSC.JWTAuth(jwt_token, site_id)
+            TSC.JWTAuth(jwt_token, site_id=site_id)
         )
     # Check for Personal Access Token authentication
     elif pat_name and pat_secret:
-        auth = TSC.PersonalAccessTokenAuth(pat_name, pat_secret, site_id)
+        auth = TSC.PersonalAccessTokenAuth(pat_name, pat_secret, site_id=site_id)
     # Check for username/password authentication
     elif username and password:
-        auth = TSC.TableauAuth(username, password, site_id)
+        auth = TSC.TableauAuth(username, password, site_id=site_id)
     else:
         raise ValueError(
             "No valid authentication method provided. Please provide either:\n"
