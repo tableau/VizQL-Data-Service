@@ -1,3 +1,4 @@
+import argparse
 import datetime
 
 import pytest
@@ -26,6 +27,14 @@ from src.api.openapi_generated import (
     TableCalcComputedAggregation,
     TableCalcFieldReference,
     TableCalcType,
+)
+from src.examples import common
+from src.examples.payload import (
+    WORKBOOK_QUERY_FUNCTIONS,
+    create_simple_workbook_query,
+    create_workbook_bin_formatting_with_parameter,
+    create_workbook_custom_calculation,
+    create_workbook_new_bin_field,
 )
 
 
@@ -380,3 +389,250 @@ def test_moving_aggregation_unspecified_serializes_to_wire():
     assert (
         spec.model_dump(mode="json", exclude_none=True)["aggregation"] == "UNSPECIFIED"
     )
+
+
+# --------------------------------------------------------------------------- #
+# Workbook-datasource-id payloads + example wiring
+# --------------------------------------------------------------------------- #
+
+
+def _make_args(**kwargs):
+    """Build a fake argparse.Namespace with sensible defaults for the
+    workbook-datasource-id args."""
+    defaults = {
+        "workbook_datasource_id": None,
+        "global_session_header": None,
+        "x_session_id": None,
+    }
+    defaults.update(kwargs)
+    return argparse.Namespace(**defaults)
+
+
+def test_simple_workbook_query_shape():
+    query = create_simple_workbook_query()
+    dumped = query.model_dump(mode="json", exclude_none=True)
+    assert [f["fieldCaption"] for f in dumped["fields"]] == ["Category", "Sales"]
+    sales = dumped["fields"][1]
+    assert sales["function"] == Function.SUM.value
+    # No filter/parameter/options on a simple workbook query.
+    assert "filters" not in dumped
+    assert "parameters" not in dumped
+
+
+def test_workbook_custom_calculation_shape():
+    query = create_workbook_custom_calculation()
+    dumped = query.model_dump(mode="json", exclude_none=True)
+    assert len(dumped["fields"]) == 1
+    only_field = dumped["fields"][0]
+    assert only_field["fieldCaption"] == "AOV"
+    assert only_field["calculation"] == "SUM([Profit])/COUNTD([Order ID])"
+
+
+def test_workbook_bin_formatting_with_parameter_shape():
+    query = create_workbook_bin_formatting_with_parameter()
+    dumped = query.model_dump(mode="json", exclude_none=True)
+    assert dumped["fields"][0]["fieldCaption"] == "Profit (bin)"
+    assert dumped["fields"][0]["sortPriority"] == 1
+    assert dumped["parameters"] == [
+        {"parameterCaption": "Profit Bin Size", "value": 50}
+    ]
+
+
+def test_workbook_new_bin_field_shape():
+    query = create_workbook_new_bin_field()
+    dumped = query.model_dump(mode="json", exclude_none=True)
+    assert dumped["fields"][0]["fieldCaption"] == "Sales"
+    assert dumped["fields"][0]["function"] == Function.SUM.value
+    bin_field = dumped["fields"][1]
+    assert bin_field["fieldCaption"] == "Profit"
+    assert bin_field["binSize"] == 4000
+
+
+def test_workbook_query_functions_registry_is_callable_and_unique():
+    """Every entry in WORKBOOK_QUERY_FUNCTIONS returns a valid Query and the
+    list contains no duplicates (each query function should appear at most
+    once)."""
+    assert len(WORKBOOK_QUERY_FUNCTIONS) == len(set(WORKBOOK_QUERY_FUNCTIONS))
+    for func in WORKBOOK_QUERY_FUNCTIONS:
+        result = func()
+        assert isinstance(result, Query)
+        assert result.fields  # at least one field
+
+
+def test_workbook_query_request_uses_workbook_datasource_id():
+    """A QueryRequest assembled the way the example runner does it should
+    serialize with workbookDatasourceId and no datasourceLuid."""
+    request = QueryRequest(
+        query=create_simple_workbook_query(),
+        datasource=common.create_workbook_datasource("wb-ds-abc"),
+    )
+    dumped = request.model_dump(mode="json", exclude_none=True)
+    assert dumped["datasource"] == {"workbookDatasourceId": "wb-ds-abc"}
+    assert "datasourceLuid" not in dumped["datasource"]
+
+
+def test_workbook_datasource_args_complete_requires_all_three():
+    assert not common.workbook_datasource_args_complete(_make_args())
+    assert not common.workbook_datasource_args_complete(
+        _make_args(workbook_datasource_id="x")
+    )
+    assert not common.workbook_datasource_args_complete(
+        _make_args(workbook_datasource_id="x", global_session_header="y")
+    )
+    assert not common.workbook_datasource_args_complete(
+        _make_args(workbook_datasource_id="x", x_session_id="z")
+    )
+    assert not common.workbook_datasource_args_complete(
+        _make_args(global_session_header="y", x_session_id="z")
+    )
+    assert common.workbook_datasource_args_complete(
+        _make_args(
+            workbook_datasource_id="x",
+            global_session_header="y",
+            x_session_id="z",
+        )
+    )
+
+
+def test_workbook_datasource_args_complete_rejects_empty_strings():
+    """Empty strings should be treated as 'not provided' so we don't send blank
+    header values."""
+    assert not common.workbook_datasource_args_complete(
+        _make_args(
+            workbook_datasource_id="x",
+            global_session_header="",
+            x_session_id="z",
+        )
+    )
+    assert not common.workbook_datasource_args_complete(
+        _make_args(
+            workbook_datasource_id="",
+            global_session_header="y",
+            x_session_id="z",
+        )
+    )
+
+
+def test_workbook_datasource_args_complete_rejects_whitespace_strings():
+    """Whitespace-only strings should also count as 'not provided' so the user
+    can't accidentally activate the workbook path with a blank-looking value."""
+    assert not common.workbook_datasource_args_complete(
+        _make_args(
+            workbook_datasource_id="x",
+            global_session_header="   ",
+            x_session_id="z",
+        )
+    )
+    assert not common.workbook_datasource_args_complete(
+        _make_args(
+            workbook_datasource_id="\t\n",
+            global_session_header="y",
+            x_session_id="z",
+        )
+    )
+
+
+def test_workbook_session_headers_uses_documented_names():
+    args = _make_args(
+        workbook_datasource_id="wb-ds",
+        global_session_header="gsh-value",
+        x_session_id="sid-value",
+    )
+    headers = common.workbook_session_headers(args)
+    assert headers == {
+        "Global-Session-Header": "gsh-value",
+        "X-Session-Id": "sid-value",
+    }
+
+
+def test_workbook_session_headers_strips_surrounding_whitespace():
+    """Leading/trailing spaces and tabs are stripped; embedded CR/LF/NUL
+    would be rejected separately by _validate_header_value."""
+    args = _make_args(
+        workbook_datasource_id="wb-ds",
+        global_session_header="  gsh-value\t",
+        x_session_id="  sid-value  ",
+    )
+    headers = common.workbook_session_headers(args)
+    assert headers == {
+        "Global-Session-Header": "gsh-value",
+        "X-Session-Id": "sid-value",
+    }
+
+
+@pytest.mark.parametrize(
+    "field, bad_value",
+    [
+        ("global_session_header", "value\r\nInjected: bad"),
+        ("global_session_header", "value\rstill-bad"),
+        ("global_session_header", "value\nstill-bad"),
+        ("global_session_header", "value\x00with-nul"),
+        ("x_session_id", "id\r\nInjected: bad"),
+        ("x_session_id", "id\x00bad"),
+    ],
+)
+def test_workbook_session_headers_rejects_crlf_and_nul(field, bad_value):
+    args = _make_args(
+        workbook_datasource_id="wb-ds",
+        global_session_header="ok",
+        x_session_id="ok",
+    )
+    setattr(args, field, bad_value)
+    with pytest.raises(ValueError, match="CR, LF, or NUL"):
+        common.workbook_session_headers(args)
+
+
+def test_print_help_describes_workbook_args_as_additional(capsys):
+    """print_help() must describe --workbook-datasource-id as running an
+    additional set of queries, not replacing the LUID-based examples — the
+    runner does both."""
+    common.print_help()
+    out = capsys.readouterr().out
+    assert "--workbook-datasource-id" in out
+    assert "--global-session-header" in out
+    assert "--x-session-id" in out
+    assert "in lieu of" not in out
+    assert "additional set of queries" in out
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        create_simple_workbook_query,
+        create_workbook_custom_calculation,
+        create_workbook_bin_formatting_with_parameter,
+        create_workbook_new_bin_field,
+    ],
+)
+def test_workbook_query_request_keeps_workbook_id_off_query(func):
+    """For every workbook payload, the assembled QueryRequest must place
+    workbookDatasourceId on the datasource (not on the query) and must never
+    expose datasourceLuid."""
+    request = QueryRequest(
+        query=func(),
+        datasource=common.create_workbook_datasource("wb-ds-xyz"),
+    )
+    dumped = request.model_dump(mode="json", exclude_none=True)
+    assert dumped["datasource"] == {"workbookDatasourceId": "wb-ds-xyz"}
+    assert "datasourceLuid" not in dumped["datasource"]
+    # workbookDatasourceId must NOT appear anywhere inside the query body.
+    import json as _json
+
+    assert "workbookDatasourceId" not in _json.dumps(dumped["query"])
+
+
+def test_create_workbook_datasource_sets_only_workbook_id():
+    ds = common.create_workbook_datasource("wb-ds-xyz")
+    assert isinstance(ds, Datasource)
+    assert ds.workbookDatasourceId == "wb-ds-xyz"
+    assert ds.datasourceLuid is None
+
+
+def test_workbook_payloads_are_distinct_from_datasource_luid_payloads():
+    """The new workbook payloads should be separate function objects from the
+    existing datasource-luid payloads — that's what lets the example runner
+    pick the right set for each codepath without surprising name collisions."""
+    from src.examples.payload import QUERY_FUNCTIONS
+
+    overlap = set(WORKBOOK_QUERY_FUNCTIONS) & set(QUERY_FUNCTIONS)
+    assert overlap == set()

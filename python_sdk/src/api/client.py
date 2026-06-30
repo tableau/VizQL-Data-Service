@@ -229,6 +229,35 @@ class VizQLDataServiceClient:
         """
         return self._client
 
+    def with_headers(self, headers: dict[str, str]) -> "VizQLDataServiceClient":
+        """Return a copy that sends additional headers on every request.
+
+        Headers are MERGED with the inner ``AuthenticatedClient``'s existing
+        headers (caller-supplied keys win on collision), matching the additive
+        semantics of :py:meth:`AuthenticatedClient.with_headers`. All other
+        inner-client settings — base_url, token, prefix, auth_header_name,
+        verify_ssl, cookies, timeout, follow_redirects, httpx_args, and
+        raise_on_unexpected_status — are preserved on the clone.
+
+        The original client (and any httpx clients it has already realized)
+        is not mutated; lazy httpx clients on the clone are realized on first
+        use.
+        """
+        clone = self.__class__.__new__(self.__class__)
+        clone.url = self.url
+        clone.server = self.server
+        clone.auth = self.auth
+        clone.verify_ssl = self.verify_ssl
+        clone.raise_on_unexpected_status = self.raise_on_unexpected_status
+        # evolve creates a new AuthenticatedClient instance; the init=False
+        # _client / _async_client fields are reset to None on the copy, so the
+        # original's realized httpx clients are not touched.
+        clone._client = evolve(
+            self._client,
+            headers={**self._client._headers, **headers},
+        )
+        return clone
+
     def get_httpx_client(self) -> httpx.Client:
         """Get the underlying httpx.Client."""
         return self.client.get_httpx_client()

@@ -23,7 +23,7 @@ if is_development:
         QueryRequest,
         ReadMetadataRequest,
     )
-    from src.examples.payload import QUERY_FUNCTIONS
+    from src.examples.payload import QUERY_FUNCTIONS, WORKBOOK_QUERY_FUNCTIONS
 else:
     import vizql_data_service_py.examples.common as common  # type: ignore
     from vizql_data_service_py.api import (  # type: ignore
@@ -37,7 +37,10 @@ else:
         QueryRequest,
         ReadMetadataRequest,
     )
-    from vizql_data_service_py.examples.payload import QUERY_FUNCTIONS  # type: ignore
+    from vizql_data_service_py.examples.payload import (  # type: ignore
+        QUERY_FUNCTIONS,
+        WORKBOOK_QUERY_FUNCTIONS,
+    )
 
 
 async def execute(args):
@@ -110,3 +113,35 @@ async def execute(args):
             )
         except Exception as e:
             common.handle_error(e, "GetDatasourceModel", args.verbose)
+
+        # Workbook-datasource-id examples (only when all required args are set)
+        if common.workbook_datasource_args_complete(args):
+            workbook_client = client.with_headers(common.workbook_session_headers(args))
+            workbook_datasource = common.create_workbook_datasource(
+                args.workbook_datasource_id
+            )
+
+            async def execute_workbook_query(query_func):
+                try:
+                    query_request = QueryRequest(
+                        query=query_func(), datasource=workbook_datasource
+                    )
+                    print(f"\n=== ExecuteWorkbookQuery: {query_func.__name__} ===")
+                    if args.verbose:
+                        print(f"Request Body: {query_request}")
+                    response = await query_datasource.asyncio_detailed(
+                        client=workbook_client, body=query_request
+                    )
+                    common.handle_response(
+                        response,
+                        f"WorkbookQuery {query_func.__name__}",
+                        args.verbose,
+                    )
+                except Exception as e:
+                    print(f"\n=== ExecuteWorkbookQuery: {query_func.__name__} ===")
+                    common.handle_error(
+                        e, f"WorkbookQuery {query_func.__name__}", args.verbose
+                    )
+
+            for query_func in WORKBOOK_QUERY_FUNCTIONS:
+                await execute_workbook_query(query_func)

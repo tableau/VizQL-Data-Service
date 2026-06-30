@@ -635,6 +635,43 @@ def create_moving_aggregation_table_calc():
     )
 
 
+def create_simple_workbook_query():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Category"),
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+        ]
+    )
+
+
+def create_workbook_custom_calculation():
+    return Query(
+        fields=[
+            CalculatedField(
+                fieldCaption="AOV", calculation="SUM([Profit])/COUNTD([Order ID])"
+            ),
+        ]
+    )
+
+
+def create_workbook_bin_formatting_with_parameter():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Profit (bin)", sortPriority=1),
+        ],
+        parameters=[Parameter(parameterCaption="Profit Bin Size", value=50)],
+    )
+
+
+def create_workbook_new_bin_field():
+    return Query(
+        fields=[
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+            BinField(fieldCaption="Profit", binSize=4000, sortPriority=1),
+        ]
+    )
+
+
 QUERY_FUNCTIONS = [
     create_simple_query,
     create_custom_calculation,
@@ -666,4 +703,12 @@ QUERY_FUNCTIONS = [
     create_rank_type_unspecified_table_calc,
     create_running_total_aggregation_table_calc,
     create_moving_aggregation_table_calc,
+]
+
+
+WORKBOOK_QUERY_FUNCTIONS = [
+    create_simple_workbook_query,
+    create_workbook_custom_calculation,
+    create_workbook_bin_formatting_with_parameter,
+    create_workbook_new_bin_field,
 ]

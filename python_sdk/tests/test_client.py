@@ -143,6 +143,105 @@ def test_vizql_data_service_client_user_agent():
     assert "python-sdk/" in httpx_client2.headers["User-Agent"]
 
 
+def test_vizql_data_service_client_with_headers_returns_clone():
+    """with_headers returns a new VizQLDataServiceClient that sends extra
+    headers on every request, without mutating the original client."""
+    server = TSC.Server("http://test.com")
+    auth = TSC.TableauAuth("test-user", "test-password")
+    server._auth_token = "test-auth-token"
+
+    client = VizQLDataServiceClient(url="http://test.com", server=server, auth=auth)
+
+    # Realize the original httpx.Client so we can check it is left untouched.
+    original_httpx = client.get_httpx_client()
+    assert "Global-Session-Header" not in original_httpx.headers
+
+    new_client = client.with_headers(
+        {"Global-Session-Header": "gsh", "X-Session-Id": "sid"}
+    )
+    assert isinstance(new_client, VizQLDataServiceClient)
+    assert new_client is not client
+    assert new_client.url == client.url
+    assert new_client.server is client.server
+    assert new_client.auth is client.auth
+    assert new_client.verify_ssl == client.verify_ssl
+
+    new_httpx = new_client.get_httpx_client()
+    assert new_httpx.headers["Global-Session-Header"] == "gsh"
+    assert new_httpx.headers["X-Session-Id"] == "sid"
+    # Authentication headers carry over to the new client.
+    assert new_httpx.headers["X-Tableau-Auth"] == "test-auth-token"
+
+    # The original client must NOT have picked up the extra headers.
+    assert "Global-Session-Header" not in original_httpx.headers
+    assert "X-Session-Id" not in original_httpx.headers
+
+
+def test_vizql_data_service_client_with_headers_async_carries_headers():
+    """The cloned client's async httpx client must also carry the extra
+    headers — the sync and async sides are independent lazy clients."""
+    server = TSC.Server("http://test.com")
+    auth = TSC.TableauAuth("test-user", "test-password")
+    server._auth_token = "test-auth-token"
+
+    client = VizQLDataServiceClient(url="http://test.com", server=server, auth=auth)
+    # Realize the original async client to confirm it is left untouched.
+    original_async = client.get_async_httpx_client()
+    assert "Global-Session-Header" not in original_async.headers
+
+    new_client = client.with_headers(
+        {"Global-Session-Header": "gsh", "X-Session-Id": "sid"}
+    )
+    new_async = new_client.get_async_httpx_client()
+    assert new_async.headers["Global-Session-Header"] == "gsh"
+    assert new_async.headers["X-Session-Id"] == "sid"
+    assert new_async.headers["X-Tableau-Auth"] == "test-auth-token"
+
+    assert "Global-Session-Header" not in original_async.headers
+    assert "X-Session-Id" not in original_async.headers
+
+
+def test_vizql_data_service_client_with_headers_preserves_inner_fields():
+    """with_headers must preserve all AuthenticatedClient fields that aren't
+    being overridden (cookies, timeout, follow_redirects, httpx_args,
+    raise_on_unexpected_status, prefix, auth_header_name)."""
+    server = TSC.Server("http://test.com")
+    auth = TSC.TableauAuth("test-user", "test-password")
+    server._auth_token = "test-auth-token"
+
+    client = VizQLDataServiceClient(url="http://test.com", server=server, auth=auth)
+    # Pre-configure non-header fields on the inner client.
+    client._client = client._client.with_cookies({"session": "orig-session"})
+    client._client = client._client.with_timeout(httpx.Timeout(7.5))
+    client._client._headers["X-Preexisting"] = "kept"
+    client._client.raise_on_unexpected_status = True
+
+    new_client = client.with_headers({"Global-Session-Header": "gsh"})
+    inner = new_client.client
+    # Header merge: caller's header is added, pre-existing header is preserved.
+    assert inner._headers.get("Global-Session-Header") == "gsh"
+    assert inner._headers.get("X-Preexisting") == "kept"
+    # Non-header fields survive evolve.
+    assert inner._cookies == {"session": "orig-session"}
+    assert inner._timeout == httpx.Timeout(7.5)
+    assert inner.raise_on_unexpected_status is True
+
+
+def test_vizql_data_service_client_with_headers_does_not_mutate_inner_headers():
+    """Mutating the headers dict passed to with_headers — or the original
+    inner client — after the call must not change what the clone sends."""
+    server = TSC.Server("http://test.com")
+    auth = TSC.TableauAuth("test-user", "test-password")
+    server._auth_token = "test-auth-token"
+
+    client = VizQLDataServiceClient(url="http://test.com", server=server, auth=auth)
+    headers_arg = {"Global-Session-Header": "gsh"}
+    new_client = client.with_headers(headers_arg)
+    # Mutate the caller's dict; the clone must be unaffected.
+    headers_arg["Global-Session-Header"] = "tampered"
+    assert new_client.client._headers["Global-Session-Header"] == "gsh"
+
+
 def test_vizql_data_service_client_async_user_agent():
     """Test User-Agent handling in VizQLDataServiceClient async client"""
     server = TSC.Server("localhost")
