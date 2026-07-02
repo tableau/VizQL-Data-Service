@@ -1,9 +1,6 @@
 ## 20262.0.0 (June 2026)
 
 * Update SDK to 20262.0.0
-* Add `VizQLDataServiceClient.with_headers(...)` for obtaining a client clone
-  that sends additional HTTP headers on every request without mutating the
-  original client.
 * Add a workbook-datasource-id example flow to the SDK examples runner. When
   the new `--workbook-datasource-id`, `--global-session-header`, and
   `--x-session-id` CLI flags are all supplied, the runner executes an
