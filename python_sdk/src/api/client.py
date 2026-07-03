@@ -6,6 +6,7 @@ import httpx
 import tableauserverclient as TSC
 from attrs import define, evolve, field
 
+from .constants import GLOBAL_SESSION_HEADER_NAME, X_SESSION_ID_HEADER_NAME
 from .utils import format_server_url
 
 API_SUBDOMAIN = "/api/v1/vizql-data-service"
@@ -183,6 +184,8 @@ class VizQLDataServiceClient:
         server: TSC.Server,
         auth: Union[TSC.JWTAuth, TSC.PersonalAccessTokenAuth, TSC.TableauAuth],
         verify_ssl: Union[str, bool, ssl.SSLContext] = True,
+        global_session_header: Optional[str] = None,
+        x_session_id: Optional[str] = None,
     ):
         """Initialize the client.
 
@@ -196,12 +199,26 @@ class VizQLDataServiceClient:
             verify_ssl: Whether or not to verify the SSL certificate of the API server.
                 This should be True in production, but can be set to False for testing purposes.
                 Can also be a path to a CA bundle file or an ssl.SSLContext instance.
+            global_session_header: Value for the ``Global-Session-Header``
+                request header used with workbook-datasource-id queries.
+                Only applied when both ``global_session_header`` and
+                ``x_session_id`` are provided.
+            x_session_id: Value for the ``X-Session-Id`` request header used
+                with workbook-datasource-id queries. Only applied when both
+                ``global_session_header`` and ``x_session_id`` are provided.
         """
         self.url = url
         self.server = server
         self.auth = auth
         self.verify_ssl = verify_ssl
         self._client = self._create_client()
+        if global_session_header and x_session_id:
+            self._client = self._client.with_headers(
+                {
+                    GLOBAL_SESSION_HEADER_NAME: global_session_header,
+                    X_SESSION_ID_HEADER_NAME: x_session_id,
+                }
+            )
         self.raise_on_unexpected_status = False
 
     def _create_client(self) -> AuthenticatedClient:

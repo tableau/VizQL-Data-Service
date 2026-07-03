@@ -424,15 +424,3 @@ def test_workbook_datasource_args_complete_requires_all_three():
             x_session_id="z",
         )
     )
-
-
-def test_workbook_session_headers_uses_documented_names():
-    args = _make_args(
-        workbook_datasource_id="wb-ds",
-        global_session_header="gsh-value",
-        x_session_id="sid-value",
-    )
-    assert common.workbook_session_headers(args) == {
-        "Global-Session-Header": "gsh-value",
-        "X-Session-Id": "sid-value",
-    }

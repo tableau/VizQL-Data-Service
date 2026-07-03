@@ -15,15 +15,15 @@ sys.path.insert(0, root_dir)
 is_development = os.path.basename(root_dir) == "python_sdk"
 
 if is_development:
+    from src.api.constants import SAMPLE_DATASOURCE
     from src.api.openapi_generated import Datasource
     from src.api.utils import format_server_url
 else:
+    from vizql_data_service_py.api.constants import (  # type: ignore
+        SAMPLE_DATASOURCE,
+    )
     from vizql_data_service_py.api.openapi_generated import Datasource  # type: ignore
     from vizql_data_service_py.api.utils import format_server_url  # type: ignore
-
-SAMPLE_DATASOURCE = "Superstore Datasource"
-GLOBAL_SESSION_HEADER_NAME = "Global-Session-Header"
-X_SESSION_ID_HEADER_NAME = "X-Session-Id"
 
 
 def print_help():
@@ -161,14 +161,6 @@ def workbook_datasource_args_complete(args) -> bool:
         and getattr(args, "global_session_header", None)
         and getattr(args, "x_session_id", None)
     )
-
-
-def workbook_session_headers(args) -> dict[str, str]:
-    """Build the per-request headers used for workbook-datasource-id queries."""
-    return {
-        GLOBAL_SESSION_HEADER_NAME: args.global_session_header,
-        X_SESSION_ID_HEADER_NAME: args.x_session_id,
-    }
 
 
 def handle_response(response, query_name, verbose=False):

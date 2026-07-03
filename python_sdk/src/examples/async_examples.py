@@ -116,8 +116,13 @@ async def execute(args):
 
         # Workbook-datasource-id examples (only when all required args are set)
         if common.workbook_datasource_args_complete(args):
-            workbook_client = VizQLDataServiceClient(server_url, server, auth)
-            workbook_client.client.with_headers(common.workbook_session_headers(args))
+            workbook_client = VizQLDataServiceClient(
+                server_url,
+                server,
+                auth,
+                global_session_header=args.global_session_header,
+                x_session_id=args.x_session_id,
+            )
             workbook_datasource = common.create_workbook_datasource(
                 args.workbook_datasource_id
             )
