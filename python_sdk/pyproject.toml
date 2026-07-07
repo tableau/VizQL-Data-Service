@@ -15,7 +15,8 @@ license = "Apache-2.0"
 requires-python = ">= 3.9"
 dependencies = [
     "setuptools>=42.0.0",
-    "tableauserverclient>=0.27,<0.40",
+    "tableauserverclient>=0.27",
+    "tableauserverclient<0.40; python_version < '3.10'",
     "python-dateutil>=2.8.0",
     "httpx>=0.23.0",
     "urllib3>=1.25.0,<3.0.0",
