@@ -12,6 +12,7 @@ is_development = os.path.basename(root_dir) == "python_sdk"
 
 if is_development:
     import src.examples.common as common
+    import src.examples.sync_workbook_datasource_examples as sync_workbook_datasource_examples
     from src.api import (
         get_datasource_model,
         query_datasource,
@@ -23,9 +24,10 @@ if is_development:
         QueryRequest,
         ReadMetadataRequest,
     )
-    from src.examples.payload import QUERY_FUNCTIONS, WORKBOOK_QUERY_FUNCTIONS
+    from src.examples.payload import QUERY_FUNCTIONS
 else:
     import vizql_data_service_py.examples.common as common  # type: ignore
+    import vizql_data_service_py.examples.sync_workbook_datasource_examples as sync_workbook_datasource_examples  # type: ignore  # noqa: E501
     from vizql_data_service_py.api import (  # type: ignore
         get_datasource_model,
         query_datasource,
@@ -39,7 +41,6 @@ else:
     )
     from vizql_data_service_py.examples.payload import (  # type: ignore
         QUERY_FUNCTIONS,
-        WORKBOOK_QUERY_FUNCTIONS,
     )
 
 
@@ -109,36 +110,4 @@ def execute(args):
         except Exception as e:
             common.handle_error(e, "GetDatasourceModel", args.verbose)
 
-        # Workbook-datasource-id examples (only when all required args are set)
-        if common.workbook_datasource_args_complete(args):
-            workbook_client = VizQLDataServiceClient(
-                server_url,
-                server,
-                auth,
-                global_session_header=args.global_session_header,
-                x_session_id=args.x_session_id,
-            )
-            workbook_datasource = common.create_workbook_datasource(
-                args.workbook_datasource_id
-            )
-            for query_func in WORKBOOK_QUERY_FUNCTIONS:
-                try:
-                    query_request = QueryRequest(
-                        query=query_func(), datasource=workbook_datasource
-                    )
-                    print(f"\n=== ExecuteWorkbookQuery: {query_func.__name__} ===")
-                    if args.verbose:
-                        print(f"Request Body: {query_request}")
-                    response = query_datasource.sync_detailed(
-                        client=workbook_client, body=query_request
-                    )
-                    common.handle_response(
-                        response,
-                        f"WorkbookQuery {query_func.__name__}",
-                        args.verbose,
-                    )
-                except Exception as e:
-                    print(f"\n=== ExecuteWorkbookQuery: {query_func.__name__} ===")
-                    common.handle_error(
-                        e, f"WorkbookQuery {query_func.__name__}", args.verbose
-                    )
+        sync_workbook_datasource_examples.run(args, server_url, server, auth)
