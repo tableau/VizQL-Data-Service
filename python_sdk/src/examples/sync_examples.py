@@ -12,7 +12,6 @@ is_development = os.path.basename(root_dir) == "python_sdk"
 
 if is_development:
     import src.examples.common as common
-    import src.examples.sync_workbook_datasource_examples as sync_workbook_datasource_examples
     from src.api import (
         get_datasource_model,
         query_datasource,
@@ -27,7 +26,6 @@ if is_development:
     from src.examples.payload import QUERY_FUNCTIONS
 else:
     import vizql_data_service_py.examples.common as common  # type: ignore
-    import vizql_data_service_py.examples.sync_workbook_datasource_examples as sync_workbook_datasource_examples  # type: ignore  # noqa: E501
     from vizql_data_service_py.api import (  # type: ignore
         get_datasource_model,
         query_datasource,
@@ -109,5 +107,3 @@ def execute(args):
             )
         except Exception as e:
             common.handle_error(e, "GetDatasourceModel", args.verbose)
-
-        sync_workbook_datasource_examples.run(args, server_url, server, auth)

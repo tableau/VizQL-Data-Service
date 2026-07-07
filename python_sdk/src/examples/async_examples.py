@@ -11,7 +11,6 @@ sys.path.insert(0, root_dir)
 is_development = os.path.basename(root_dir) == "python_sdk"
 
 if is_development:
-    import src.examples.async_workbook_datasource_examples as async_workbook_datasource_examples
     import src.examples.common as common
     from src.api import (
         get_datasource_model,
@@ -26,7 +25,6 @@ if is_development:
     )
     from src.examples.payload import QUERY_FUNCTIONS
 else:
-    import vizql_data_service_py.examples.async_workbook_datasource_examples as async_workbook_datasource_examples  # type: ignore  # noqa: E501
     import vizql_data_service_py.examples.common as common  # type: ignore
     from vizql_data_service_py.api import (  # type: ignore
         get_datasource_model,
@@ -114,5 +112,3 @@ async def execute(args):
             )
         except Exception as e:
             common.handle_error(e, "GetDatasourceModel", args.verbose)
-
-        await async_workbook_datasource_examples.run(args, server_url, server, auth)

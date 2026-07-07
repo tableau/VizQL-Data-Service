@@ -1,6 +1,8 @@
 import os
 import sys
 
+import tableauserverclient as TSC
+
 # Add project root to sys.path
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.insert(0, root_dir)
@@ -26,33 +28,49 @@ else:
     )
 
 
-def run(args, server_url, server, auth):
+def run(args):
     if not common.workbook_datasource_args_complete(args):
         return
-    workbook_client = VizQLDataServiceClient(
-        server_url,
-        server,
-        auth,
-        global_session_header=args.global_session_header,
-        x_session_id=args.x_session_id,
+    server_url, auth = common.create_server(
+        url=args.server,
+        username=args.user,
+        password=args.password,
+        pat_name=args.pat_name,
+        pat_secret=args.pat_secret,
+        jwt_token=args.jwt_token,
+        site_id=args.site,
     )
-    workbook_datasource = common.create_workbook_datasource(args.workbook_datasource_id)
-    for query_func in WORKBOOK_QUERY_FUNCTIONS:
-        try:
-            query_request = QueryRequest(
-                query=query_func(), datasource=workbook_datasource
-            )
-            print(f"\n=== ExecuteWorkbookQuery: {query_func.__name__} ===")
-            if args.verbose:
-                print(f"Request Body: {query_request}")
-            response = query_datasource.sync_detailed(
-                client=workbook_client, body=query_request
-            )
-            common.handle_response(
-                response,
-                f"WorkbookQuery {query_func.__name__}",
-                args.verbose,
-            )
-        except Exception as e:
-            print(f"\n=== ExecuteWorkbookQuery: {query_func.__name__} ===")
-            common.handle_error(e, f"WorkbookQuery {query_func.__name__}", args.verbose)
+    server = TSC.Server(server_url)
+
+    with server.auth.sign_in(auth):
+        workbook_client = VizQLDataServiceClient(
+            server_url,
+            server,
+            auth,
+            global_session_header=args.global_session_header,
+            x_session_id=args.x_session_id,
+        )
+        workbook_datasource = common.create_workbook_datasource(
+            args.workbook_datasource_id
+        )
+        for query_func in WORKBOOK_QUERY_FUNCTIONS:
+            try:
+                query_request = QueryRequest(
+                    query=query_func(), datasource=workbook_datasource
+                )
+                print(f"\n=== ExecuteWorkbookQuery: {query_func.__name__} ===")
+                if args.verbose:
+                    print(f"Request Body: {query_request}")
+                response = query_datasource.sync_detailed(
+                    client=workbook_client, body=query_request
+                )
+                common.handle_response(
+                    response,
+                    f"WorkbookQuery {query_func.__name__}",
+                    args.verbose,
+                )
+            except Exception as e:
+                print(f"\n=== ExecuteWorkbookQuery: {query_func.__name__} ===")
+                common.handle_error(
+                    e, f"WorkbookQuery {query_func.__name__}", args.verbose
+                )
