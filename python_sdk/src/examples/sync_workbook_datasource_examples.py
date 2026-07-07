@@ -53,7 +53,8 @@ def run(args):
         workbook_datasource = common.create_workbook_datasource(
             args.workbook_datasource_id
         )
-        for query_func in WORKBOOK_QUERY_FUNCTIONS:
+
+        def execute_workbook_query(query_func):
             try:
                 query_request = QueryRequest(
                     query=query_func(), datasource=workbook_datasource
@@ -74,3 +75,6 @@ def run(args):
                 common.handle_error(
                     e, f"WorkbookQuery {query_func.__name__}", args.verbose
                 )
+
+        for query_func in WORKBOOK_QUERY_FUNCTIONS:
+            execute_workbook_query(query_func)
