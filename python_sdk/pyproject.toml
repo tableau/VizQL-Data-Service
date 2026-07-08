@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vizql-data-service-py"
-version = "20261.0.0"  # This value is manually updated. The major and minor versions must always be the same as the version defined in VizQLDataServiceOpenAPISchema.json
+version = "20262.0.0"  # This value is manually updated. The major and minor versions must always be the same as the version defined in VizQLDataServiceOpenAPISchema.json
 
 description = "A Python client library for interacting with the VizQL Data Service API"
 readme = "README.md"
@@ -16,6 +16,7 @@ requires-python = ">= 3.9"
 dependencies = [
     "setuptools>=42.0.0",
     "tableauserverclient>=0.27",
+    "tableauserverclient<0.40; python_version < '3.10'",
     "python-dateutil>=2.8.0",
     "httpx>=0.23.0",
     "urllib3>=1.25.0,<3.0.0",

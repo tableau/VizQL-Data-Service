@@ -26,14 +26,20 @@ if is_development:
         MatchFilter,
         MeasureField,
         MeasureFilterField,
+        MovingTableCalcSpecification,
         Parameter,
         PeriodType,
         QuantitativeDateFilter,
         QuantitativeFilterType,
         QuantitativeNumericalFilter,
         Query,
+        RankTableCalcSpecification,
+        RankType,
         RelativeDateFilter,
+        RelativeTo,
+        RunningTotalTableCalcSpecification,
         SetFilter,
+        TableCalcComputedAggregation,
         TableCalcField,
         TableCalcFieldReference,
         TableCalcType,
@@ -56,14 +62,20 @@ else:
         MatchFilter,
         MeasureField,
         MeasureFilterField,
+        MovingTableCalcSpecification,
         Parameter,
         PeriodType,
         QuantitativeDateFilter,
         QuantitativeFilterType,
         QuantitativeNumericalFilter,
         Query,
+        RankTableCalcSpecification,
+        RankType,
         RelativeDateFilter,
+        RelativeTo,
+        RunningTotalTableCalcSpecification,
         SetFilter,
+        TableCalcComputedAggregation,
         TableCalcField,
         TableCalcFieldReference,
         TableCalcType,
@@ -551,6 +563,115 @@ def create_count_of_table_cal():
     )
 
 
+def create_relative_to_unspecified_table_calc():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Region", sortPriority=1),
+            DimensionField(fieldCaption="Segment", sortPriority=2),
+            TableCalcField(
+                fieldCaption="Sales",
+                function=Function.SUM,
+                tableCalculation=DifferenceTableCalcSpecification(
+                    tableCalcType=TableCalcType.DIFFERENCE_FROM.value,
+                    dimensions=[
+                        TableCalcFieldReference(fieldCaption="Region"),
+                        TableCalcFieldReference(fieldCaption="Segment"),
+                    ],
+                    relativeTo=RelativeTo.UNSPECIFIED,
+                ),
+            ),
+        ]
+    )
+
+
+def create_rank_type_unspecified_table_calc():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Region", sortPriority=1),
+            TableCalcField(
+                fieldCaption="Sales",
+                function=Function.SUM,
+                tableCalculation=RankTableCalcSpecification(
+                    tableCalcType=TableCalcType.RANK.value,
+                    dimensions=[TableCalcFieldReference(fieldCaption="Region")],
+                    rankType=RankType.UNSPECIFIED,
+                ),
+            ),
+        ]
+    )
+
+
+def create_running_total_aggregation_table_calc():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Region", sortPriority=1),
+            TableCalcField(
+                fieldCaption="Sales",
+                function=Function.SUM,
+                tableCalculation=RunningTotalTableCalcSpecification(
+                    tableCalcType=TableCalcType.RUNNING_TOTAL.value,
+                    dimensions=[TableCalcFieldReference(fieldCaption="Region")],
+                    aggregation=TableCalcComputedAggregation.SUM,
+                ),
+            ),
+        ]
+    )
+
+
+def create_moving_aggregation_table_calc():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Region", sortPriority=1),
+            TableCalcField(
+                fieldCaption="Sales",
+                function=Function.SUM,
+                tableCalculation=MovingTableCalcSpecification(
+                    tableCalcType=TableCalcType.MOVING_CALCULATION.value,
+                    dimensions=[TableCalcFieldReference(fieldCaption="Region")],
+                    aggregation=TableCalcComputedAggregation.SUM,
+                ),
+            ),
+        ]
+    )
+
+
+def create_simple_workbook_query():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Category"),
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+        ]
+    )
+
+
+def create_workbook_custom_calculation():
+    return Query(
+        fields=[
+            CalculatedField(
+                fieldCaption="AOV", calculation="SUM([Profit])/COUNTD([Order ID])"
+            ),
+        ]
+    )
+
+
+def create_workbook_bin_formatting_with_parameter():
+    return Query(
+        fields=[
+            DimensionField(fieldCaption="Profit (bin)", sortPriority=1),
+        ],
+        parameters=[Parameter(parameterCaption="Profit Bin Size", value=50)],
+    )
+
+
+def create_workbook_new_bin_field():
+    return Query(
+        fields=[
+            MeasureField(fieldCaption="Sales", function=Function.SUM),
+            BinField(fieldCaption="Profit", binSize=4000, sortPriority=1),
+        ]
+    )
+
+
 QUERY_FUNCTIONS = [
     create_simple_query,
     create_custom_calculation,
@@ -578,4 +699,16 @@ QUERY_FUNCTIONS = [
     create_simple_table_calculation,
     create_condition_filter,
     create_count_of_table_cal,
+    create_relative_to_unspecified_table_calc,
+    create_rank_type_unspecified_table_calc,
+    create_running_total_aggregation_table_calc,
+    create_moving_aggregation_table_calc,
+]
+
+
+WORKBOOK_QUERY_FUNCTIONS = [
+    create_simple_workbook_query,
+    create_workbook_custom_calculation,
+    create_workbook_bin_formatting_with_parameter,
+    create_workbook_new_bin_field,
 ]

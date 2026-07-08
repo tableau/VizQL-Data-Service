@@ -69,22 +69,44 @@ scripts\generate_stub.bat
 See generated `src\api\openapi_generated.py` python class for detailed information about the generated model classes, their properties.
 
 ### Running Examples
+
+`examples.py` is the single entry point for the runnable samples. It runs two flows against the server you point it at:
+
+- **Published datasource examples** (`sync_published_datasource_examples.py` /
+  `async_published_datasource_examples.py`) — always run.
+- **Live workbook examples** (`sync_live_workbook_examples.py` /
+  `async_live_workbook_examples.py`) — run only when the three workbook flags
+  below are all supplied.
+
 ```bash
-# Running the existing examples synchronously and asynchronously
 cd src/examples
 
 python examples.py --help
 
+# Running the published datasource examples
 # If `site` argument is left out, this will run against a default site that your token works for
 # If `async` argument is left out, the default examples run synchronously
-# Auth using username and password
+
+# Auth using username and password and run synchronous examples
 python examples.py --user "<username>" --password "<password>" --server "<server>"
 
-# Auth using personal access token (PAT)
+# Auth using personal access token (PAT) and run asynchronous examples
 python examples.py --pat-name "<pat-name>" --pat-secret "<pat-secret>" --server "<server>" --site "<site-id>" --async
 
-# Auth using JWT
+# Auth using JWT and run async examples
 python examples.py --jwt-token "<jwt-token>" --server "<server>" --site "<site-id>" --async
+```
+
+To additionally run the live workbook datasource examples, pass all three workbook flags. If any one is missing, this flow is skipped and only the published datasource examples run.
+
+```bash
+# Runs both the synchronous published datasource examples and the synchronous live workbook examples
+python examples.py \
+  --pat-name "<pat-name>" --pat-secret "<pat-secret>" \
+  --server "<server>" --site "<site-id>" \
+  --workbook-datasource-id "<workbook-datasource-id>" \
+  --global-session-header "<global-session-header>" \
+  --x-session-id "<x-session-id>"
 ```
 
 # Contribution Checklist

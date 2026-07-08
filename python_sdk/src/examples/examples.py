@@ -10,13 +10,17 @@ sys.path.insert(0, root_dir)
 is_development = os.path.basename(root_dir) == "python_sdk"
 
 if is_development:
-    import src.examples.async_examples as async_examples
+    import src.examples.async_live_workbook_examples as async_live_workbook_examples
+    import src.examples.async_published_datasource_examples as async_published_datasource_examples
     import src.examples.common as common
-    import src.examples.sync_examples as sync_examples
+    import src.examples.sync_live_workbook_examples as sync_live_workbook_examples
+    import src.examples.sync_published_datasource_examples as sync_published_datasource_examples
 else:
-    import vizql_data_service_py.examples.async_examples as async_examples  # type: ignore
+    import vizql_data_service_py.examples.async_live_workbook_examples as async_live_workbook_examples  # type: ignore
+    import vizql_data_service_py.examples.async_published_datasource_examples as async_published_datasource_examples  # type: ignore
     import vizql_data_service_py.examples.common as common  # type: ignore
-    import vizql_data_service_py.examples.sync_examples as sync_examples  # type: ignore
+    import vizql_data_service_py.examples.sync_live_workbook_examples as sync_live_workbook_examples  # type: ignore
+    import vizql_data_service_py.examples.sync_published_datasource_examples as sync_published_datasource_examples  # type: ignore
 
 if __name__ == "__main__":
     # Check for help flag before parsing arguments
@@ -36,6 +40,8 @@ if __name__ == "__main__":
     if args.async_mode:
         if sys.platform == "win32":
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-        asyncio.run(async_examples.execute(args))
+        asyncio.run(async_published_datasource_examples.execute(args))
+        asyncio.run(async_live_workbook_examples.run(args))
     else:
-        sync_examples.execute(args)
+        sync_published_datasource_examples.execute(args)
+        sync_live_workbook_examples.run(args)

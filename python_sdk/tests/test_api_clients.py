@@ -246,3 +246,96 @@ async def test_async_query_request(
     assert data[0] == ["Furniture", 10.459905215419496]
     assert data[1] == ["Office Supplies", 32.73404617851419]
     assert data[2] == ["Technology", 94.20657260362681]
+
+
+def test_sync_workbook_datasource_query_request(
+    mock_server: TSC.Server,
+    mock_auth: TSC.TableauAuth,
+    mock_query_response: Dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When the workbook header kwargs are supplied to the constructor, the
+    resulting client sends Global-Session-Header and X-Session-Id on the wire."""
+    captured: Dict[str, Any] = {}
+
+    def mock_request(self: httpx.Client, *args: Any, **kwargs: Any) -> Response:
+        captured["headers"] = dict(self.headers)
+        return Response(
+            status_code=200,
+            content=json.dumps(mock_query_response).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+
+    monkeypatch.setattr(httpx.Client, "request", mock_request)
+
+    workbook_client = VizQLDataServiceClient(
+        "http://localhost",
+        mock_server,
+        mock_auth,
+        global_session_header="gsh",
+        x_session_id="sid",
+    )
+    request = QueryRequest(
+        datasource=Datasource(workbookDatasourceId="wb-ds-abc"),
+        query=Query(fields=[Field(root=DimensionField(fieldCaption="Category"))]),
+    )
+    query_datasource.sync_detailed(client=workbook_client, body=request)
+
+    assert captured["headers"]["global-session-header"] == "gsh"
+    assert captured["headers"]["x-session-id"] == "sid"
+
+
+@pytest.mark.asyncio
+async def test_async_workbook_datasource_query_request(
+    mock_server: TSC.Server,
+    mock_auth: TSC.TableauAuth,
+    mock_query_response: Dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Same as the sync workbook test, but for the async dispatcher."""
+    captured: Dict[str, Any] = {}
+
+    async def mock_request(
+        self: httpx.AsyncClient, *args: Any, **kwargs: Any
+    ) -> Response:
+        captured["headers"] = dict(self.headers)
+        return Response(
+            status_code=200,
+            content=json.dumps(mock_query_response).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+
+    monkeypatch.setattr(httpx.AsyncClient, "request", mock_request)
+
+    workbook_client = VizQLDataServiceClient(
+        "http://localhost",
+        mock_server,
+        mock_auth,
+        global_session_header="gsh",
+        x_session_id="sid",
+    )
+    request = QueryRequest(
+        datasource=Datasource(workbookDatasourceId="wb-ds-async"),
+        query=Query(fields=[Field(root=DimensionField(fieldCaption="Category"))]),
+    )
+    await query_datasource.asyncio_detailed(client=workbook_client, body=request)
+
+    assert captured["headers"]["global-session-header"] == "gsh"
+    assert captured["headers"]["x-session-id"] == "sid"
+
+
+def test_client_ignores_session_headers_when_incomplete(
+    mock_server: TSC.Server,
+    mock_auth: TSC.TableauAuth,
+) -> None:
+    """When only one of the two workbook header params is supplied, the
+    constructor must not attach any workbook header."""
+    partial_client = VizQLDataServiceClient(
+        "http://localhost",
+        mock_server,
+        mock_auth,
+        global_session_header="gsh",
+    )
+    headers = partial_client.get_httpx_client().headers
+    assert "global-session-header" not in headers
+    assert "x-session-id" not in headers

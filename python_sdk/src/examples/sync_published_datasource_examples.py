@@ -37,10 +37,12 @@ else:
         QueryRequest,
         ReadMetadataRequest,
     )
-    from vizql_data_service_py.examples.payload import QUERY_FUNCTIONS  # type: ignore
+    from vizql_data_service_py.examples.payload import (  # type: ignore
+        QUERY_FUNCTIONS,
+    )
 
 
-async def execute(args):
+def execute(args):
     server_url, auth = common.create_server(
         url=args.server,
         username=args.user,
@@ -50,7 +52,6 @@ async def execute(args):
         jwt_token=args.jwt_token,
         site_id=args.site,
     )
-
     server = TSC.Server(server_url)
 
     with server.auth.sign_in(auth):
@@ -62,9 +63,10 @@ async def execute(args):
         try:
             print("\n=== ReadMetadata Query ===")
             metadata_request = ReadMetadataRequest(datasource=datasource)
-            print(f"Request Body: {metadata_request}")
+            if args.verbose:
+                print(f"Request Body: {metadata_request}")
 
-            metadata_response = await read_metadata.asyncio_detailed(
+            metadata_response = read_metadata.sync_detailed(
                 client=client, body=metadata_request
             )
             common.handle_response(
@@ -74,26 +76,21 @@ async def execute(args):
             common.handle_error(e, "ReadMetadata Query", args.verbose)
 
         # Query data source examples
-        async def execute_query(query_func):
+        for query_func in QUERY_FUNCTIONS:
             try:
                 query_request = QueryRequest(query=query_func(), datasource=datasource)
+                response = query_datasource.sync_detailed(
+                    client=client, body=query_request
+                )
                 print(f"\n=== ExecuteQuery: {query_func.__name__} ===")
                 if args.verbose:
                     print(f"Request Body: {query_request}")
-
-                response = await query_datasource.asyncio_detailed(
-                    client=client, body=query_request
-                )
                 common.handle_response(
                     response, f"Query {query_func.__name__}", args.verbose
                 )
             except Exception as e:
                 print(f"\n=== ExecuteQuery: {query_func.__name__} ===")
                 common.handle_error(e, f"Query {query_func.__name__}", args.verbose)
-
-        # Execute queries sequentially
-        for query_func in QUERY_FUNCTIONS:
-            await execute_query(query_func)
 
         # Get datasource model example
         try:
@@ -102,7 +99,7 @@ async def execute(args):
             if args.verbose:
                 print(f"Request Body: {datasource_model_request}")
 
-            datasource_model_response = await get_datasource_model.asyncio_detailed(
+            datasource_model_response = get_datasource_model.sync_detailed(
                 client=client, body=datasource_model_request
             )
             common.handle_response(

@@ -15,13 +15,15 @@ sys.path.insert(0, root_dir)
 is_development = os.path.basename(root_dir) == "python_sdk"
 
 if is_development:
+    from src.api.constants import SAMPLE_DATASOURCE
     from src.api.openapi_generated import Datasource
     from src.api.utils import format_server_url
 else:
+    from vizql_data_service_py.api.constants import (  # type: ignore
+        SAMPLE_DATASOURCE,
+    )
     from vizql_data_service_py.api.openapi_generated import Datasource  # type: ignore
     from vizql_data_service_py.api.utils import format_server_url  # type: ignore
-
-SAMPLE_DATASOURCE = "Superstore Datasource"
 
 
 def print_help():
@@ -47,6 +49,13 @@ def print_help():
     )
     print("  -v, --verbose              Print detailed request response information")
     print("  -h, --help                 Show this help message")
+    print(
+        "  --workbook-datasource-id ID  Run additional queries against a workbook datasource"
+    )
+    print(
+        "  --global-session-header V    Value for the 'Global-Session-Header' request header"
+    )
+    print("  --x-session-id V             Value for the 'X-Session-Id' request header")
 
     print("\nExamples:")
     print("  1. Basic usage with username/password:")
@@ -83,6 +92,33 @@ def parse_arguments():
     parser.add_argument(
         "-h", "--help", action="store_true", help="Show this help message"
     )
+    parser.add_argument(
+        "--workbook-datasource-id",
+        dest="workbook_datasource_id",
+        help=(
+            "Workbook datasource id used to run an additional set of queries "
+            "against a workbook datasource. Requires --global-session-header "
+            "and --x-session-id."
+        ),
+    )
+    parser.add_argument(
+        "--global-session-header",
+        dest="global_session_header",
+        help=(
+            "Value sent in the 'Global-Session-Header' request header for "
+            "workbook-datasource-id queries. Requires --workbook-datasource-id "
+            "and --x-session-id."
+        ),
+    )
+    parser.add_argument(
+        "--x-session-id",
+        dest="x_session_id",
+        help=(
+            "Value sent in the 'X-Session-Id' request header for "
+            "workbook-datasource-id queries. Requires --workbook-datasource-id "
+            "and --global-session-header."
+        ),
+    )
     return parser
 
 
@@ -110,6 +146,21 @@ def list_datasources_and_get_luid(server: TSC.Server, verbose: bool = False):
 def create_datasource(luid: str) -> Datasource:
     """Create a Datasource object with the given LUID."""
     return Datasource(datasourceLuid=luid)
+
+
+def create_workbook_datasource(workbook_datasource_id: str) -> Datasource:
+    """Create a Datasource object referenced by workbookDatasourceId."""
+    return Datasource(workbookDatasourceId=workbook_datasource_id)
+
+
+def workbook_datasource_args_complete(args) -> bool:
+    """Return True iff all three workbook-datasource-id CLI flags were
+    supplied with non-empty values."""
+    return bool(
+        getattr(args, "workbook_datasource_id", None)
+        and getattr(args, "global_session_header", None)
+        and getattr(args, "x_session_id", None)
+    )
 
 
 def handle_response(response, query_name, verbose=False):
@@ -187,14 +238,14 @@ def create_server(
     # Check for JWT authentication
     if jwt_token:
         auth: Union[TSC.JWTAuth, TSC.PersonalAccessTokenAuth, TSC.TableauAuth] = (
-            TSC.JWTAuth(jwt_token, site_id)
+            TSC.JWTAuth(jwt_token, site_id=site_id)
         )
     # Check for Personal Access Token authentication
     elif pat_name and pat_secret:
-        auth = TSC.PersonalAccessTokenAuth(pat_name, pat_secret, site_id)
+        auth = TSC.PersonalAccessTokenAuth(pat_name, pat_secret, site_id=site_id)
     # Check for username/password authentication
     elif username and password:
-        auth = TSC.TableauAuth(username, password, site_id)
+        auth = TSC.TableauAuth(username, password, site_id=site_id)
     else:
         raise ValueError(
             "No valid authentication method provided. Please provide either:\n"

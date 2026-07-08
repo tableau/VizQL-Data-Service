@@ -1,22 +1,35 @@
+import argparse
 import datetime
 
 import pytest
 
 from src.api.openapi_generated import (
+    Datasource,
     DataType,
     DateRangeType,
     DimensionField,
+    DimensionFilterField,
     FilterType,
     Function,
     MeasureField,
     MetadataOutput,
+    MovingTableCalcSpecification,
     ParameterType,
     PeriodType,
     QuantitativeFilterType,
     QuantitativeRangeParameter,
+    Query,
+    QueryDatasourceOptions,
     QueryRequest,
     ReadMetadataRequest,
+    RelativeDateFilter,
+    RunningTotalTableCalcSpecification,
+    TableCalcComputedAggregation,
+    TableCalcFieldReference,
+    TableCalcType,
 )
+from src.examples import common
+from src.examples.payload import create_simple_workbook_query
 
 
 def _unwrap(obj):
@@ -284,3 +297,130 @@ def test_query_request_to_dict(sample_query_request):
     assert set_filter["values"] == ["First Class"]
     assert set_filter["exclude"] is False
     assert set_filter["field"]["fieldCaption"] == "Ship Mode"
+
+
+def test_datasource_luid_not_required():
+    """Test Datasource() with no fields is legal."""
+    datasource = Datasource()
+    assert datasource.datasourceLuid is None
+    assert datasource.workbookDatasourceId is None
+
+
+def test_datasource_workbook_datasource_id():
+    """Test Datasource accepts workbookDatasourceId in lieu of datasourceLuid."""
+    datasource = Datasource(workbookDatasourceId="sampleWorkbookDatasourceId")
+    assert datasource.datasourceLuid is None
+    assert datasource.workbookDatasourceId == "sampleWorkbookDatasourceId"
+
+
+def test_query_request_with_workbook_datasource_id():
+    """Test QueryRequest builds and serializes with workbookDatasourceId-only datasource."""
+    request = QueryRequest(
+        query=Query(fields=[DimensionField(fieldCaption="Category")]),
+        datasource=Datasource(workbookDatasourceId="sampleWorkbookDatasourceId"),
+    )
+    request_dict = request.model_dump(exclude_none=True)
+    assert request_dict["datasource"] == {
+        "workbookDatasourceId": "sampleWorkbookDatasourceId"
+    }
+    assert "datasourceLuid" not in request_dict["datasource"]
+
+
+def test_query_datasource_options_with_new_session():
+    """Test QueryDatasourceOptions exposes the withNewSession flag."""
+    options = QueryDatasourceOptions(withNewSession=True)
+    assert options.withNewSession is True
+
+
+def test_query_request_with_new_session_options():
+    """Test QueryRequest serializes withNewSession when set on options."""
+    request = QueryRequest(
+        query=Query(fields=[DimensionField(fieldCaption="Category")]),
+        datasource=Datasource(datasourceLuid="abc"),
+        options=QueryDatasourceOptions(withNewSession=True),
+    )
+    request_dict = request.model_dump(exclude_none=True)
+    assert request_dict["options"]["withNewSession"] is True
+
+
+def test_period_type_unspecified_serializes_to_wire():
+    """RelativeDateFilter accepts and serializes PeriodType.UNSPECIFIED literally."""
+    filter_ = RelativeDateFilter(
+        field=DimensionFilterField(fieldCaption="Order Date"),
+        filterType=FilterType.DATE,
+        periodType=PeriodType.UNSPECIFIED,
+        dateRangeType=DateRangeType.CURRENT,
+        anchorDate=datetime.date(2024, 1, 1),
+    )
+    assert filter_.periodType == PeriodType.UNSPECIFIED
+    assert (
+        filter_.model_dump(mode="json", exclude_none=True)["periodType"]
+        == "UNSPECIFIED"
+    )
+
+
+def test_running_total_aggregation_unspecified_serializes_to_wire():
+    """RunningTotalTableCalcSpecification serializes aggregation=UNSPECIFIED literally."""
+    spec = RunningTotalTableCalcSpecification(
+        tableCalcType=TableCalcType.RUNNING_TOTAL.value,
+        dimensions=[TableCalcFieldReference(fieldCaption="Region")],
+        aggregation=TableCalcComputedAggregation.UNSPECIFIED,
+    )
+    assert spec.aggregation == TableCalcComputedAggregation.UNSPECIFIED
+    assert (
+        spec.model_dump(mode="json", exclude_none=True)["aggregation"] == "UNSPECIFIED"
+    )
+
+
+def test_moving_aggregation_unspecified_serializes_to_wire():
+    """MovingTableCalcSpecification serializes aggregation=UNSPECIFIED literally."""
+    spec = MovingTableCalcSpecification(
+        tableCalcType=TableCalcType.MOVING_CALCULATION.value,
+        dimensions=[TableCalcFieldReference(fieldCaption="Region")],
+        aggregation=TableCalcComputedAggregation.UNSPECIFIED,
+    )
+    assert spec.aggregation == TableCalcComputedAggregation.UNSPECIFIED
+    assert (
+        spec.model_dump(mode="json", exclude_none=True)["aggregation"] == "UNSPECIFIED"
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Workbook-datasource-id payloads + example wiring
+# --------------------------------------------------------------------------- #
+
+
+def _make_args(**kwargs):
+    defaults = {
+        "workbook_datasource_id": None,
+        "global_session_header": None,
+        "x_session_id": None,
+    }
+    defaults.update(kwargs)
+    return argparse.Namespace(**defaults)
+
+
+def test_workbook_query_request_uses_workbook_datasource_id():
+    """A QueryRequest built the way the runner builds it serializes with
+    workbookDatasourceId and no datasourceLuid."""
+    request = QueryRequest(
+        query=create_simple_workbook_query(),
+        datasource=common.create_workbook_datasource("wb-ds-abc"),
+    )
+    dumped = request.model_dump(mode="json", exclude_none=True)
+    assert dumped["datasource"] == {"workbookDatasourceId": "wb-ds-abc"}
+    assert "datasourceLuid" not in dumped["datasource"]
+
+
+def test_workbook_datasource_args_complete_requires_all_three():
+    assert not common.workbook_datasource_args_complete(_make_args())
+    assert not common.workbook_datasource_args_complete(
+        _make_args(workbook_datasource_id="x", global_session_header="y")
+    )
+    assert common.workbook_datasource_args_complete(
+        _make_args(
+            workbook_datasource_id="x",
+            global_session_header="y",
+            x_session_id="z",
+        )
+    )

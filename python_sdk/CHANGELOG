@@ -1,3 +1,12 @@
+## 20262.0.0 (June 2026)
+
+* Update SDK to 20262.0.0
+* Add a workbook-datasource-id example flow to the SDK examples runner. When
+  the new `--workbook-datasource-id`, `--global-session-header`, and
+  `--x-session-id` CLI flags are all supplied, the runner executes an
+  additional set of queries against a workbook datasource using the
+  `Global-Session-Header` and `X-Session-Id` HTTP headers.
+
 ## 20261.0.0 (January 2026)
 
 * Update SDK to 20261.0.0

@@ -3,7 +3,7 @@
     "info": {
         "title": "VizQL Data Service",
         "description": "An API to query Tableau published data sources",
-        "version": "20261.0"
+        "version": "20262.0"
     },
     "servers": [
         {
@@ -500,6 +500,7 @@
                         "type": "string",
                         "default": "PREVIOUS",
                         "enum": [
+                            "UNSPECIFIED",
                             "PREVIOUS",
                             "NEXT",
                             "FIRST",
@@ -541,6 +542,7 @@
                         "type": "string",
                         "default": "COMPETITION",
                         "enum": [
+                            "UNSPECIFIED",
                             "COMPETITION",
                             "MODIFIED COMPETITION",
                             "DENSE",
@@ -629,6 +631,7 @@
                 "type": "string",
                 "default": "SUM",
                 "enum": [
+                    "UNSPECIFIED",
                     "SUM",
                     "AVG",
                     "MIN",
@@ -700,6 +703,7 @@
                     },
                     "columnClass": {
                         "enum": [
+                            "UNSPECIFIED",
                             "COLUMN",
                             "BIN",
                             "GROUP",
@@ -753,6 +757,7 @@
             "DataType": {
                 "type": "string",
                 "enum": [
+                    "UNSPECIFIED",
                     "INTEGER",
                     "REAL",
                     "STRING",
@@ -766,6 +771,7 @@
             "FieldRole": {
                 "type": "string",
                 "enum": [
+                    "UNSPECIFIED",
                     "MEASURE",
                     "DIMENSION",
                     "UNKNOWN"
@@ -774,6 +780,7 @@
             "FieldType": {
                 "type": "string",
                 "enum": [
+                    "UNSPECIFIED",
                     "CONTINUOUS",
                     "NOMINAL",
                     "ORDINAL",
@@ -783,6 +790,7 @@
             "ImageRole": {
               "type": "string",
               "enum": [
+                "UNSPECIFIED",
                 "URL"
               ]
             },
@@ -814,11 +822,14 @@
             },
             "Datasource": {
                 "type": "object",
-                "required": ["datasourceLuid"],
                 "properties": {
                     "datasourceLuid": {
                         "type": "string",
                         "description": "The LUID of the data source to be queried."
+                    },
+                    "workbookDatasourceId": {
+                        "type": "string",
+                        "description": "The name/string id of the datasource in the workbook."
                     },
                     "connections": {
                         "type": "array",
@@ -919,6 +930,7 @@
                 "type": "string",
                 "description": "The standard set of Tableau aggregations which can be applied to a field.",
                 "enum": [
+                    "UNSPECIFIED",
                     "SUM",
                     "AVG",
                     "MEDIAN",
@@ -940,8 +952,7 @@
                     "TRUNC_WEEK",
                     "TRUNC_DAY",
                     "AGG",
-                    "NONE",
-                    "UNSPECIFIED"
+                    "NONE"
                 ]
             },
             "MatchFilter": {
@@ -1170,6 +1181,10 @@
                         "type": "boolean",
                         "default": false
                     },
+                    "withNewSession": {
+                        "type": "boolean",
+                        "default": false
+                    },
                     "interpretFieldCaptionsAsFieldNames": {
                         "type": "boolean",
                         "default": false,
@@ -1342,6 +1357,7 @@
                 "type": "string",
                 "description": "The units of time in the date range.",
                 "enum": [
+                    "UNSPECIFIED",
                     "MINUTES",
                     "HOURS",
                     "DAYS",
@@ -1551,11 +1567,12 @@
             "ParameterRecord": {
                 "type": "object",
                 "description": "Common properties of a parameter. A parameter is a workbook variable such as a number, date, or string that can replace a constant value in a calculation, filter, or reference line.",
-                "required": ["parameterType", "parameterCaption", "value", "dataType"],
+                "required": ["parameterType", "parameterCaption", "value", "dataType", "parameterName"],
                 "properties": {
                     "parameterType": {
                         "type": "string",
                         "enum": [
+                            "UNSPECIFIED",
                             "ANY_VALUE",
                             "LIST",
                             "QUANTITATIVE_RANGE",
@@ -1753,7 +1770,7 @@
             "Grouping": {
                 "type": "object",
                 "description": "A grouping object that defines a group within a group formula.",
-                "required": ["members"],
+                "required": ["members", "alias"],
                 "properties": {
                     "alias": {
                         "type": "string",
