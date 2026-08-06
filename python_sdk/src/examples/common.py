@@ -3,7 +3,7 @@ import inspect
 import os
 import sys
 import traceback
-from typing import Optional, Union
+from typing import Iterable, Optional, Union
 
 import tableauserverclient as TSC
 
@@ -15,15 +15,47 @@ sys.path.insert(0, root_dir)
 is_development = os.path.basename(root_dir) == "python_sdk"
 
 if is_development:
-    from src.api.constants import SAMPLE_DATASOURCE
-    from src.api.openapi_generated import Datasource
+    from src.api import (
+        get_datasource_model,
+        query_datasource,
+        read_metadata,
+    )
+    from src.api.client import VizQLDataServiceClient
+    from src.api.constants import (
+        SAMPLE_DATASOURCE,
+        SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE,
+        SAMPLE_WORKBOOK,
+    )
+    from src.api.openapi_generated import (
+        Datasource,
+        GetDatasourceModelRequest,
+        QueryRequest,
+        ReadMetadataRequest,
+    )
     from src.api.utils import format_server_url
+    from src.examples.payload import QUERY_FUNCTIONS
 else:
+    from vizql_data_service_py.api import (  # type: ignore
+        get_datasource_model,
+        query_datasource,
+        read_metadata,
+    )
+    from vizql_data_service_py.api.client import VizQLDataServiceClient  # type: ignore
     from vizql_data_service_py.api.constants import (  # type: ignore
         SAMPLE_DATASOURCE,
+        SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE,
+        SAMPLE_WORKBOOK,
     )
-    from vizql_data_service_py.api.openapi_generated import Datasource  # type: ignore
+    from vizql_data_service_py.api.openapi_generated import (  # type: ignore
+        Datasource,
+        GetDatasourceModelRequest,
+        QueryRequest,
+        ReadMetadataRequest,
+    )
     from vizql_data_service_py.api.utils import format_server_url  # type: ignore
+    from vizql_data_service_py.examples.payload import (  # type: ignore
+        QUERY_FUNCTIONS,
+    )
 
 
 def print_help():
@@ -141,6 +173,210 @@ def list_datasources_and_get_luid(server: TSC.Server, verbose: bool = False):
     selected_ds = matching_datasources[0]
     print(f"\nUsing '{selected_ds.name}' with ID: {selected_ds.id}")
     return selected_ds.id
+
+
+def list_workbooks_and_get_embedded_workbook_datasource_luid(
+    server: TSC.Server, verbose: bool = False
+) -> Optional[str]:
+    """Find the SAMPLE_WORKBOOK sample workbook and return the LUID of its
+    SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE embedded workbook datasource.
+
+    Returns None (and prints a skip warning) when the sample workbook is
+    not on the server or when the workbook has no embedded workbook
+    datasource matching SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE.
+
+    "Embedded workbook datasource" here refers to a datasource that lives
+    inside a workbook and is addressed by ``datasourceLuid`` - distinct
+    from the live-workbook flow, which addresses a datasource by
+    ``workbookDatasourceId`` plus session headers.
+    """
+    if not server.auth_token:
+        raise RuntimeError("Not signed in. Please call sign_in() first.")
+
+    all_workbooks, pagination_item = server.workbooks.get()
+
+    if verbose:
+        print(f"\nThere are {pagination_item.total_available} workbooks on site:")
+        for wb in all_workbooks:
+            print(f"- {wb.name} (LUID: {wb.id})")
+
+    matching_workbooks = [wb for wb in all_workbooks if wb.name == SAMPLE_WORKBOOK]
+    if not matching_workbooks:
+        print(
+            f"\nSample workbook '{SAMPLE_WORKBOOK}' not found, "
+            f"skipping embedded workbook datasource examples."
+        )
+        return None
+
+    workbook = matching_workbooks[0]
+    server.workbooks.populate_connections(workbook)
+
+    if verbose:
+        print(f"\nConnections for workbook '{workbook.name}':")
+        for conn in workbook.connections:
+            print(
+                f"- datasource_name={conn.datasource_name!r} "
+                f"datasource_id={conn.datasource_id!r}"
+            )
+
+    matching_connections = [
+        conn
+        for conn in workbook.connections
+        if conn.datasource_name == SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE
+        and conn.datasource_id
+    ]
+    if not matching_connections:
+        print(
+            f"\nEmbedded workbook datasource "
+            f"'{SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE}' not found "
+            f"in workbook '{SAMPLE_WORKBOOK}', "
+            f"skipping embedded workbook datasource examples."
+        )
+        return None
+
+    selected = matching_connections[0]
+    print(
+        f"\nUsing embedded workbook datasource '{selected.datasource_name}' "
+        f"from workbook '{workbook.name}' with ID: {selected.datasource_id}"
+    )
+    return selected.datasource_id
+
+
+def run_datasource_queries_sync(
+    client: VizQLDataServiceClient,
+    datasource: Datasource,
+    args,
+    label_suffix: str = "",
+    skip_query_names: Optional[Iterable[str]] = None,
+) -> None:
+    """Run ReadMetadata, then each QUERY_FUNCTIONS query, then
+    GetDatasourceModel against ``datasource`` using the sync client.
+
+    ``label_suffix`` is appended to section headers and to the
+    ``operation_name`` passed into handle_response / handle_error, so
+    output from concurrent example runs (e.g. published datasource vs.
+    embedded workbook datasource) remains distinguishable.
+
+    ``skip_query_names`` names QUERY_FUNCTIONS entries (by ``__name__``)
+    that should be skipped for this datasource - useful when the target
+    datasource lacks fields that a query references.
+    """
+    skip = set(skip_query_names or ())
+    try:
+        print(f"\n=== ReadMetadata Query{label_suffix} ===")
+        metadata_request = ReadMetadataRequest(datasource=datasource)
+        if args.verbose:
+            print(f"Request Body: {metadata_request}")
+
+        metadata_response = read_metadata.sync_detailed(
+            client=client, body=metadata_request
+        )
+        handle_response(
+            metadata_response, f"ReadMetadata Query{label_suffix}", args.verbose
+        )
+    except Exception as e:
+        handle_error(e, f"ReadMetadata Query{label_suffix}", args.verbose)
+
+    for query_func in QUERY_FUNCTIONS:
+        if query_func.__name__ in skip:
+            print(
+                f"\n=== ExecuteQuery: {query_func.__name__}{label_suffix} ==="
+                f"\nSkipped (not applicable to this datasource)."
+            )
+            continue
+        try:
+            query_request = QueryRequest(query=query_func(), datasource=datasource)
+            print(f"\n=== ExecuteQuery: {query_func.__name__}{label_suffix} ===")
+            if args.verbose:
+                print(f"Request Body: {query_request}")
+            response = query_datasource.sync_detailed(client=client, body=query_request)
+            handle_response(
+                response, f"Query {query_func.__name__}{label_suffix}", args.verbose
+            )
+        except Exception as e:
+            print(f"\n=== ExecuteQuery: {query_func.__name__}{label_suffix} ===")
+            handle_error(e, f"Query {query_func.__name__}{label_suffix}", args.verbose)
+
+    try:
+        print(f"\n=== GetDatasourceModel{label_suffix} ===")
+        datasource_model_request = GetDatasourceModelRequest(datasource=datasource)
+        if args.verbose:
+            print(f"Request Body: {datasource_model_request}")
+
+        datasource_model_response = get_datasource_model.sync_detailed(
+            client=client, body=datasource_model_request
+        )
+        handle_response(
+            datasource_model_response,
+            f"GetDatasourceModel{label_suffix}",
+            args.verbose,
+        )
+    except Exception as e:
+        handle_error(e, f"GetDatasourceModel{label_suffix}", args.verbose)
+
+
+async def run_datasource_queries_async(
+    client: VizQLDataServiceClient,
+    datasource: Datasource,
+    args,
+    label_suffix: str = "",
+    skip_query_names: Optional[Iterable[str]] = None,
+) -> None:
+    """Async twin of :func:`run_datasource_queries_sync`."""
+    skip = set(skip_query_names or ())
+    try:
+        print(f"\n=== ReadMetadata Query{label_suffix} ===")
+        metadata_request = ReadMetadataRequest(datasource=datasource)
+        if args.verbose:
+            print(f"Request Body: {metadata_request}")
+
+        metadata_response = await read_metadata.asyncio_detailed(
+            client=client, body=metadata_request
+        )
+        handle_response(
+            metadata_response, f"ReadMetadata Query{label_suffix}", args.verbose
+        )
+    except Exception as e:
+        handle_error(e, f"ReadMetadata Query{label_suffix}", args.verbose)
+
+    for query_func in QUERY_FUNCTIONS:
+        if query_func.__name__ in skip:
+            print(
+                f"\n=== ExecuteQuery: {query_func.__name__}{label_suffix} ==="
+                f"\nSkipped (not applicable to this datasource)."
+            )
+            continue
+        try:
+            query_request = QueryRequest(query=query_func(), datasource=datasource)
+            print(f"\n=== ExecuteQuery: {query_func.__name__}{label_suffix} ===")
+            if args.verbose:
+                print(f"Request Body: {query_request}")
+            response = await query_datasource.asyncio_detailed(
+                client=client, body=query_request
+            )
+            handle_response(
+                response, f"Query {query_func.__name__}{label_suffix}", args.verbose
+            )
+        except Exception as e:
+            print(f"\n=== ExecuteQuery: {query_func.__name__}{label_suffix} ===")
+            handle_error(e, f"Query {query_func.__name__}{label_suffix}", args.verbose)
+
+    try:
+        print(f"\n=== GetDatasourceModel{label_suffix} ===")
+        datasource_model_request = GetDatasourceModelRequest(datasource=datasource)
+        if args.verbose:
+            print(f"Request Body: {datasource_model_request}")
+
+        datasource_model_response = await get_datasource_model.asyncio_detailed(
+            client=client, body=datasource_model_request
+        )
+        handle_response(
+            datasource_model_response,
+            f"GetDatasourceModel{label_suffix}",
+            args.verbose,
+        )
+    except Exception as e:
+        handle_error(e, f"GetDatasourceModel{label_suffix}", args.verbose)
 
 
 def create_datasource(luid: str) -> Datasource:
