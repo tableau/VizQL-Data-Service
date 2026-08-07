@@ -23,7 +23,7 @@ if is_development:
     from src.api.client import VizQLDataServiceClient
     from src.api.constants import (
         SAMPLE_DATASOURCE,
-        SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE,
+        SAMPLE_STATIC_WORKBOOK_DATASOURCE,
         SAMPLE_WORKBOOK,
     )
     from src.api.openapi_generated import (
@@ -43,7 +43,7 @@ else:
     from vizql_data_service_py.api.client import VizQLDataServiceClient  # type: ignore
     from vizql_data_service_py.api.constants import (  # type: ignore
         SAMPLE_DATASOURCE,
-        SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE,
+        SAMPLE_STATIC_WORKBOOK_DATASOURCE,
         SAMPLE_WORKBOOK,
     )
     from vizql_data_service_py.api.openapi_generated import (  # type: ignore
@@ -175,17 +175,17 @@ def list_datasources_and_get_luid(server: TSC.Server, verbose: bool = False):
     return selected_ds.id
 
 
-def list_workbooks_and_get_embedded_workbook_datasource_luid(
+def list_workbooks_and_get_static_workbook_datasource_luid(
     server: TSC.Server, verbose: bool = False
 ) -> Optional[str]:
     """Find the SAMPLE_WORKBOOK sample workbook and return the LUID of its
-    SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE embedded workbook datasource.
+    SAMPLE_STATIC_WORKBOOK_DATASOURCE static workbook datasource.
 
     Returns None (and prints a skip warning) when the sample workbook is
-    not on the server or when the workbook has no embedded workbook
-    datasource matching SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE.
+    not on the server or when the workbook has no static workbook
+    datasource matching SAMPLE_STATIC_WORKBOOK_DATASOURCE.
 
-    "Embedded workbook datasource" here refers to a datasource that lives
+    "Static workbook datasource" here refers to a datasource that lives
     inside a workbook and is addressed by ``datasourceLuid`` - distinct
     from the live-workbook flow, which addresses a datasource by
     ``workbookDatasourceId`` plus session headers.
@@ -204,7 +204,7 @@ def list_workbooks_and_get_embedded_workbook_datasource_luid(
     if not matching_workbooks:
         print(
             f"\nSample workbook '{SAMPLE_WORKBOOK}' not found, "
-            f"skipping embedded workbook datasource examples."
+            f"skipping static workbook datasource examples."
         )
         return None
 
@@ -222,21 +222,21 @@ def list_workbooks_and_get_embedded_workbook_datasource_luid(
     matching_connections = [
         conn
         for conn in workbook.connections
-        if conn.datasource_name == SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE
+        if conn.datasource_name == SAMPLE_STATIC_WORKBOOK_DATASOURCE
         and conn.datasource_id
     ]
     if not matching_connections:
         print(
-            f"\nEmbedded workbook datasource "
-            f"'{SAMPLE_EMBEDDED_WORKBOOK_DATASOURCE}' not found "
+            f"\nStatic workbook datasource "
+            f"'{SAMPLE_STATIC_WORKBOOK_DATASOURCE}' not found "
             f"in workbook '{SAMPLE_WORKBOOK}', "
-            f"skipping embedded workbook datasource examples."
+            f"skipping static workbook datasource examples."
         )
         return None
 
     selected = matching_connections[0]
     print(
-        f"\nUsing embedded workbook datasource '{selected.datasource_name}' "
+        f"\nUsing static workbook datasource '{selected.datasource_name}' "
         f"from workbook '{workbook.name}' with ID: {selected.datasource_id}"
     )
     return selected.datasource_id
@@ -255,7 +255,7 @@ def run_datasource_queries_sync(
     ``label_suffix`` is appended to section headers and to the
     ``operation_name`` passed into handle_response / handle_error, so
     output from concurrent example runs (e.g. published datasource vs.
-    embedded workbook datasource) remains distinguishable.
+    static workbook datasource) remains distinguishable.
 
     ``skip_query_names`` names QUERY_FUNCTIONS entries (by ``__name__``)
     that should be skipped for this datasource - useful when the target

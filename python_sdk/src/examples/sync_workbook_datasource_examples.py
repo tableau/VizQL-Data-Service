@@ -20,10 +20,9 @@ else:
 
 # Queries in QUERY_FUNCTIONS that reference fields specific to the published
 # "Superstore Datasource" (a Profit (bin) field and a [Profit Bin Size]
-# parameter). The embedded workbook datasource "Sample - Superstore" in
-# the sample workbook does not define them, so VDS returns 400803 Unknown
-# Field.
-EMBEDDED_WORKBOOK_DATASOURCE_SKIP_QUERIES = (
+# parameter). The static workbook datasource "Sample - Superstore" in the
+# sample workbook does not define them, so VDS returns 400803 Unknown Field.
+STATIC_WORKBOOK_DATASOURCE_SKIP_QUERIES = (
     "create_bin_formatting_with_parameter",
     "create_parameter_calculated_field",
 )
@@ -43,10 +42,8 @@ def execute(args):
 
     with server.auth.sign_in(auth):
         client = VizQLDataServiceClient(server_url, server, auth)
-        datasource_luid = (
-            common.list_workbooks_and_get_embedded_workbook_datasource_luid(
-                server, args.verbose
-            )
+        datasource_luid = common.list_workbooks_and_get_static_workbook_datasource_luid(
+            server, args.verbose
         )
         if datasource_luid is None:
             return
@@ -55,6 +52,6 @@ def execute(args):
             client,
             datasource,
             args,
-            label_suffix=" (Embedded Workbook Datasource)",
-            skip_query_names=EMBEDDED_WORKBOOK_DATASOURCE_SKIP_QUERIES,
+            label_suffix=" (Static Workbook Datasource)",
+            skip_query_names=STATIC_WORKBOOK_DATASOURCE_SKIP_QUERIES,
         )
