@@ -27,11 +27,13 @@ The rest of this file — subcommand semantics, examples-CLI defaults, Gotchas, 
 
 ## Run (agent path — Windows)
 
-**Always use the absolute path** to `driver.ps1` — Windows PowerShell resolves `-File` against the *child* process's cwd, not the parent's, so a relative path breaks when the parent shell isn't sitting in `python_sdk/`. Assign the absolute path to `$D` once and reuse:
+**Always pass an absolute path** to `powershell -File` — Windows PowerShell resolves `-File` against the *child* process's cwd, not the parent's, so a literal relative path (e.g. `.\driver.ps1`) breaks when the parent shell isn't sitting in `python_sdk/`. Do NOT hardcode a drive letter — resolve the path at runtime from the git repo root so the skill works no matter where the user cloned or launched from:
 
 ```powershell
-$D = 'D:\dev\VizQL-Data-Service\python_sdk\.claude\skills\run-vizql-data-service-py\driver.ps1'
+$D = Join-Path (git rev-parse --show-toplevel) 'python_sdk\.claude\skills\run-vizql-data-service-py\driver.ps1'
 ```
+
+`git rev-parse --show-toplevel` returns the repo root regardless of the cwd (as long as it's *somewhere* inside the repo — Claude may be launched from `python_sdk/`, `python_sdk/src/examples/`, or the repo root). The result is an absolute path, which is what `powershell -File` needs.
 
 One-time setup (installs the package editable with the dev extras — `black`, `isort`, `flake8`, `mypy`, `pytest`, `pytest-asyncio`, `pytest-cov`, plus `datamodel-code-generator` used by `gen`):
 
@@ -69,10 +71,10 @@ powershell -NoProfile -File $D all
 
 ## Run (agent path — macOS / Linux)
 
-`driver.sh` accepts the same subcommands as `driver.ps1` and can be invoked from any cwd (it resolves the repo root from its own location). Assign the absolute path once and reuse:
+`driver.sh` accepts the same subcommands as `driver.ps1` and can be invoked from any cwd (it resolves the repo root from its own location). Resolve the path at runtime so the skill isn't tied to any specific clone location:
 
 ```bash
-D=~/dev/VizQL-Data-Service/python_sdk/.claude/skills/run-vizql-data-service-py/driver.sh
+D="$(git rev-parse --show-toplevel)/python_sdk/.claude/skills/run-vizql-data-service-py/driver.sh"
 ```
 
 Everyday subcommands:
@@ -139,13 +141,13 @@ powershell -NoProfile -File $D examples
 powershell -NoProfile -File $D examples --async -v
 
 # Explicit server, defaulted auth
-powershell -NoProfile -File $D examples -s "https://tableau.example.com"
+powershell -NoProfile -File $D examples -s "https://10ax.online.tableau.com"
 
 # Explicit server + PAT (defaults do NOT fire because auth flags are present)
-powershell -NoProfile -File $D examples -s "https://tableau.example.com" -n "<pat-name>" -t "<pat-secret>" -S "<site>"
+powershell -NoProfile -File $D examples -s "https://10ax.online.tableau.com" -n "<pat-name>" -t "<pat-secret>" -S "<site>"
 
 # Add the live-workbook flow (requires all three flags together)
-powershell -NoProfile -File $D examples -s "https://tableau.example.com" -n "<pat-name>" -t "<pat-secret>" -S "<site>" `
+powershell -NoProfile -File $D examples -s "https://10ax.online.tableau.com" -n "<pat-name>" -t "<pat-secret>" -S "<site>" `
     --workbook-datasource-id "<workbook-datasource-id>" `
     --global-session-header "<global-session-header>" `
     --x-session-id "<x-session-id>"
@@ -161,13 +163,13 @@ bash "$D" examples
 bash "$D" examples --async -v
 
 # Explicit server, defaulted auth
-bash "$D" examples -s "https://tableau.example.com"
+bash "$D" examples -s "https://10ax.online.tableau.com"
 
 # Explicit server + PAT (defaults do NOT fire because auth flags are present)
-bash "$D" examples -s "https://tableau.example.com" -n "<pat-name>" -t "<pat-secret>" -S "<site>"
+bash "$D" examples -s "https://10ax.online.tableau.com" -n "<pat-name>" -t "<pat-secret>" -S "<site>"
 
 # Add the live-workbook flow (requires all three flags together)
-bash "$D" examples -s "https://tableau.example.com" -n "<pat-name>" -t "<pat-secret>" -S "<site>" \
+bash "$D" examples -s "https://10ax.online.tableau.com" -n "<pat-name>" -t "<pat-secret>" -S "<site>" \
     --workbook-datasource-id "<workbook-datasource-id>" \
     --global-session-header "<global-session-header>" \
     --x-session-id "<x-session-id>"
@@ -205,9 +207,7 @@ When you do report an error, quote the exact error line from the output so the u
 ## Gotchas
 
 - **PowerShell "NativeCommandError" noise on lint (Windows).** `black` writes its "All done!" banner to stderr. Windows PowerShell 5.1 wraps every native-executable stderr line in a `NativeCommandError` record and reports it in red, but the exit code is 0 and the run is fine. Ignore the red text; check the final "Success" / non-zero exit code, not the stream color. The driver checks `$LASTEXITCODE` explicitly. Not applicable to `driver.sh`.
-- **`pwsh` vs `powershell` (Windows).** This machine has only Windows PowerShell 5.1 on PATH (`powershell.exe`). Any doc that says `pwsh -File …` needs `powershell -File …` instead.
-- **`-File` and relative paths (Windows).** `powershell -NoProfile -File <relative-path>` resolves against the child process's cwd, not the caller's — and the harness that runs these tools starts new shells in whatever directory it wants. Always pass an absolute path to `driver.ps1`. `driver.sh` sidesteps this — it resolves its own directory via `${BASH_SOURCE[0]}` regardless of cwd.
-- **`scripts/*.sh` bake in relative paths.** They read `../VizQLDataServiceOpenAPISchema.json` and write into `src/…`, so they must run with cwd = `python_sdk/`. Both `driver.ps1` and `driver.sh` `cd` into the repo root before shelling out, so it's safe to invoke either from anywhere.
+- **`-File` and relative paths (Windows).** `powershell -NoProfile -File <relative-path>` resolves against the child process's cwd, not the caller's. Always pass an absolute path — the recommended form is `$D = Join-Path (git rev-parse --show-toplevel) 'python_sdk\.claude\skills\run-vizql-data-service-py\driver.ps1'`, which works from any cwd inside the repo regardless of clone location. `driver.sh` sidesteps this entirely via `${BASH_SOURCE[0]}`.
 - **`scripts/test.sh` blows away `./venv`.** Do not run it if you have anything you care about in a local `venv/` folder. Prefer `driver.ps1 lint && driver.ps1 test` (Windows) or `driver.sh lint && driver.sh test` (macOS/Linux) for local dev.
 - **`gen` overwrites `src/api/openapi_generated.py`.** The intermediate `src/api/openapi_generated-raw.py` is deleted by `scripts/post_process.py`, so a clean run leaves exactly one file. If you see `openapi_generated-raw.py` lingering, post-processing crashed mid-run.
 - **Version drift.** `check_version.sh` fails if the `major.minor` of `pyproject.toml` doesn't match the OpenAPI schema. When bumping schema versions, update `pyproject.toml`'s version to match before pushing — CI enforces this.
