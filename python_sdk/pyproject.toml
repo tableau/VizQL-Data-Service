@@ -83,3 +83,8 @@ exclude = '''
   | /venv/
 )
 '''
+
+[tool.coverage.run]
+omit = [
+    "src/examples/*",
+]
