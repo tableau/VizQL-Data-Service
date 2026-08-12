@@ -32,7 +32,11 @@ async def execute(args):
     server = TSC.Server(server_url)
 
     with server.auth.sign_in(auth):
-        client = VizQLDataServiceClient(server_url, server, auth)
+        client = VizQLDataServiceClient(
+            server_url, server, auth, verify_ssl=not args.no_verify_ssl
+        )
         datasource_luid = common.list_datasources_and_get_luid(server, args.verbose)
         datasource = common.create_datasource(datasource_luid)
-        await common.run_datasource_queries_async(client, datasource, args)
+        await common.run_datasource_queries_async(
+            client, datasource, args, label_suffix=" (Published Datasource)"
+        )

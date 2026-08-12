@@ -41,7 +41,9 @@ def execute(args):
     server = TSC.Server(server_url)
 
     with server.auth.sign_in(auth):
-        client = VizQLDataServiceClient(server_url, server, auth)
+        client = VizQLDataServiceClient(
+            server_url, server, auth, verify_ssl=not args.no_verify_ssl
+        )
         datasource_luid = common.list_workbooks_and_get_static_workbook_datasource_luid(
             server, args.verbose
         )

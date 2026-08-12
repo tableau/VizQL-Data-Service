@@ -80,6 +80,9 @@ def print_help():
         "  -S, --site SITE_NAME       Tableau Server site name, or the default site if unspecified"
     )
     print("  -v, --verbose              Print detailed request response information")
+    print(
+        "  --no-verify-ssl            Disable SSL certificate verification (test hosts only)"
+    )
     print("  -h, --help                 Show this help message")
     print(
         "  --workbook-datasource-id ID  Run additional queries against a workbook datasource"
@@ -120,6 +123,16 @@ def parse_arguments():
     parser.add_argument("-S", "--site", help="Tableau Server site name")
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Print detailed information"
+    )
+    parser.add_argument(
+        "--no-verify-ssl",
+        dest="no_verify_ssl",
+        action="store_true",
+        help=(
+            "Disable SSL certificate verification. Use for internal test "
+            "servers whose certificate chain your local trust store cannot "
+            "validate. Do not use against production servers."
+        ),
     )
     parser.add_argument(
         "-h", "--help", action="store_true", help="Show this help message"
@@ -171,7 +184,9 @@ def list_datasources_and_get_luid(server: TSC.Server, verbose: bool = False):
         raise ValueError(f"Datasource named '{SAMPLE_DATASOURCE}' not found.")
 
     selected_ds = matching_datasources[0]
-    print(f"\nUsing '{selected_ds.name}' with ID: {selected_ds.id}")
+    print(
+        f"\nUsing published datasource '{selected_ds.name}' with ID: {selected_ds.id}"
+    )
     return selected_ds.id
 
 
