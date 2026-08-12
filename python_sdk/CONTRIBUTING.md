@@ -70,20 +70,32 @@ See generated `src\api\openapi_generated.py` python class for detailed informati
 
 ### Running Examples
 
-`examples.py` is the single entry point for the runnable samples. It runs two flows against the server you point it at:
+`examples.py` is the single entry point for the runnable samples. It runs three flows against the server you point it at:
 
 - **Published datasource examples** (`sync_published_datasource_examples.py` /
-  `async_published_datasource_examples.py`) — always run.
+  `async_published_datasource_examples.py`) — always run. Targets the
+  `Superstore Datasource` published datasource by LUID.
+- **Static workbook datasource examples**
+  (`sync_workbook_datasource_examples.py` /
+  `async_workbook_datasource_examples.py`) — always attempted. Looks up the
+  `Superstore` sample workbook, resolves the LUID of its
+  `Sample - Superstore` static workbook datasource, and runs the same VDS
+  calls against it via `datasourceLuid`. Silently skipped (with a printed
+  warning) if either the sample workbook or the static workbook datasource
+  is not present on the server.
 - **Live workbook examples** (`sync_live_workbook_examples.py` /
   `async_live_workbook_examples.py`) — run only when the three workbook flags
-  below are all supplied.
+  below are all supplied. Targets a workbook datasource via
+  `workbookDatasourceId` plus the `Global-Session-Header` and `X-Session-Id`
+  request headers; this is a distinct flow from the static workbook
+  datasource above.
 
 ```bash
 cd src/examples
 
 python examples.py --help
 
-# Running the published datasource examples
+# Running the published + static workbook datasource examples
 # If `site` argument is left out, this will run against a default site that your token works for
 # If `async` argument is left out, the default examples run synchronously
 
@@ -97,10 +109,10 @@ python examples.py --pat-name "<pat-name>" --pat-secret "<pat-secret>" --server 
 python examples.py --jwt-token "<jwt-token>" --server "<server>" --site "<site-id>" --async
 ```
 
-To additionally run the live workbook datasource examples, pass all three workbook flags. If any one is missing, this flow is skipped and only the published datasource examples run.
+To additionally run the live workbook examples, pass all three workbook flags. If any one is missing, this flow is skipped and only the published + static workbook datasource examples run.
 
 ```bash
-# Runs both the synchronous published datasource examples and the synchronous live workbook examples
+# Runs the synchronous published, static workbook datasource, and live workbook examples
 python examples.py \
   --pat-name "<pat-name>" --pat-secret "<pat-secret>" \
   --server "<server>" --site "<site-id>" \

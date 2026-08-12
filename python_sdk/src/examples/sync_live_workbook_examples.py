@@ -47,6 +47,7 @@ def run(args):
             server_url,
             server,
             auth,
+            verify_ssl=not args.no_verify_ssl,
             global_session_header=args.global_session_header,
             x_session_id=args.x_session_id,
         )

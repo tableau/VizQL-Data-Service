@@ -3,7 +3,7 @@
     "info": {
         "title": "VizQL Data Service",
         "description": "An API to query Tableau published data sources",
-        "version": "20262.0"
+        "version": "20263.0"
     },
     "servers": [
         {
@@ -697,6 +697,10 @@
                         "$ref": "#/components/schemas/FieldType",
                         "description": "Field role of the column, i.e., \"CONTINUOUS\", \"NOMINAL\", \"ORDINAL\"."
                     },
+                    "fiscalYearStart": {
+                        "$ref": "#/components/schemas/FiscalYearStart",
+                        "description": "Per-field fiscal year start override (UNSPECIFIED means use datasource default)."
+                    },
                     "defaultAggregation": {
                         "$ref": "#/components/schemas/Function",
                         "description": "The default aggregation applied to the field."
@@ -728,7 +732,6 @@
                         "type": "string",
                         "description": "Optional description for the field."
                     },
-
                     "imageRole": {
                       "$ref": "#/components/schemas/ImageRole",
                       "description": "Optional image role for this field."
@@ -825,7 +828,7 @@
                 "properties": {
                     "datasourceLuid": {
                         "type": "string",
-                        "description": "The LUID of the data source to be queried."
+                        "description": "The LUID of the published or workbook data source to be queried."
                     },
                     "workbookDatasourceId": {
                         "type": "string",
@@ -1043,6 +1046,10 @@
                                 "items": {
                                     "$ref": "#/components/schemas/ParameterRecord"
                                 }
+                            },
+                            "dateProperties": {
+                                "$ref": "#/components/schemas/DateProperties",
+                                "description": "Datasource-level calendar properties (fiscal year start, week start)."
                             }
                         }
                     }
@@ -1823,6 +1830,53 @@
                         "description": "The field reference to which the relationship targets (e.g., [Order ID (Returns)]). Field references are typically enclosed in square brackets."
                     }
                 }
+            },
+            "DateProperties": {
+                "type": "object",
+                "description": "Datasource-level calendar properties containing fiscal year start and week start settings.",
+                "properties": {
+                    "weekStart": {
+                        "$ref": "#/components/schemas/StartOfWeek",
+                        "description": "The day on which the week starts for this datasource."
+                    },
+                    "fiscalYearStart": {
+                        "$ref": "#/components/schemas/FiscalYearStart",
+                        "description": "The month in which the fiscal year starts for this datasource."
+                    }
+                }
+            },
+            "FiscalYearStart": {
+                "type": "string",
+                "enum": [
+                    "UNSPECIFIED",
+                    "JANUARY",
+                    "FEBRUARY",
+                    "MARCH",
+                    "APRIL",
+                    "MAY",
+                    "JUNE",
+                    "JULY",
+                    "AUGUST",
+                    "SEPTEMBER",
+                    "OCTOBER",
+                    "NOVEMBER",
+                    "DECEMBER"
+                ],
+                "description": "The month in which the fiscal year starts."
+            },
+            "StartOfWeek": {
+                "type": "string",
+                "enum": [
+                    "UNSPECIFIED",
+                    "SUNDAY",
+                    "MONDAY",
+                    "TUESDAY",
+                    "WEDNESDAY",
+                    "THURSDAY",
+                    "FRIDAY",
+                    "SATURDAY"
+                ],
+                "description": "The day on which the week starts."
             }
         },
         "securitySchemes": {
