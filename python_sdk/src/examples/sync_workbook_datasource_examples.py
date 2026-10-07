@@ -18,6 +18,16 @@ else:
     from vizql_data_service_py.api.client import VizQLDataServiceClient  # type: ignore
 
 
+# Queries in QUERY_FUNCTIONS that reference fields specific to the published
+# "Superstore Datasource" (a Profit (bin) field and a [Profit Bin Size]
+# parameter). The static workbook datasource "Sample - Superstore" in the
+# sample workbook does not define them, so VDS returns 400803 Unknown Field.
+STATIC_WORKBOOK_DATASOURCE_SKIP_QUERIES = (
+    "create_bin_formatting_with_parameter",
+    "create_parameter_calculated_field",
+)
+
+
 def execute(args):
     server_url, auth = common.create_server(
         url=args.server,
@@ -34,8 +44,16 @@ def execute(args):
         client = VizQLDataServiceClient(
             server_url, server, auth, verify_ssl=not args.no_verify_ssl
         )
-        datasource_luid = common.list_datasources_and_get_luid(server, args.verbose)
+        datasource_luid = common.list_workbooks_and_get_static_workbook_datasource_luid(
+            server, args.verbose
+        )
+        if datasource_luid is None:
+            return
         datasource = common.create_datasource(datasource_luid)
         common.run_datasource_queries_sync(
-            client, datasource, args, label_suffix=" (Published Datasource)"
+            client,
+            datasource,
+            args,
+            label_suffix=" (Static Workbook Datasource)",
+            skip_query_names=STATIC_WORKBOOK_DATASOURCE_SKIP_QUERIES,
         )
