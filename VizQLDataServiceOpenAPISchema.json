@@ -3,7 +3,7 @@
     "info": {
         "title": "VizQL Data Service",
         "description": "An API to query Tableau published data sources",
-        "version": "20262.0"
+        "version": "20263.0"
     },
     "servers": [
         {
@@ -180,6 +180,46 @@
                                     "items": {
                                         "$ref": "#/components/schemas/SupportedFunction"
                                     }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TableauError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/user-has-query-permissions": {
+            "post": {
+                "tags": ["HeadlessBI"],
+                "operationId": "UserHasQueryPermissions",
+                "summary": "Check the calling user's VizQL Data Service query permission for a data source",
+                "description": "Returns whether the calling (authenticated) user has full VizQL Data Service query permission on the given published or workbook data source, along with the full per-capability Allow/Deny matrix for every resource evaluated. This reports the Headless BI layer permission verdict; it does not execute a query. Only a datasourceLuid is supported (a workbookDatasourceId is rejected with a 400).",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserHasQueryPermissionsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QueryPermissionsOutput"
                                 }
                             }
                         }
@@ -679,7 +719,7 @@
                 "properties": {
                     "fieldName": {
                         "type": "string",
-                        "description": "The underlying database column name for the field."
+                        "description": "The column's logical name for the field."
                     },
                     "fieldCaption": {
                         "type": "string",
@@ -696,6 +736,10 @@
                     "fieldType": {
                         "$ref": "#/components/schemas/FieldType",
                         "description": "Field role of the column, i.e., \"CONTINUOUS\", \"NOMINAL\", \"ORDINAL\"."
+                    },
+                    "fiscalYearStart": {
+                        "$ref": "#/components/schemas/FiscalYearStart",
+                        "description": "Per-field fiscal year start override (UNSPECIFIED means use datasource default)."
                     },
                     "defaultAggregation": {
                         "$ref": "#/components/schemas/Function",
@@ -728,7 +772,6 @@
                         "type": "string",
                         "description": "Optional description for the field."
                     },
-
                     "imageRole": {
                       "$ref": "#/components/schemas/ImageRole",
                       "description": "Optional image role for this field."
@@ -751,6 +794,14 @@
                             "$ref": "#/components/schemas/FieldAlias"
                         },
                         "description": "A list of aliases mapping original member values to alias values."
+                    },
+                    "remoteFieldName": {
+                        "type": "string",
+                        "description": "The physical column name in the remote database. Set only when includeRemoteDatabaseNames is requested and the field maps to a remote relational column."
+                    },
+                    "remoteTableName": {
+                        "type": "string",
+                        "description": "The remote database table this field comes from. Set only when includeRemoteDatabaseNames is requested and the field maps to a remote relational column."
                     }
                 }
             },
@@ -825,7 +876,7 @@
                 "properties": {
                     "datasourceLuid": {
                         "type": "string",
-                        "description": "The LUID of the data source to be queried."
+                        "description": "The LUID of the published or workbook data source to be queried."
                     },
                     "workbookDatasourceId": {
                         "type": "string",
@@ -1043,6 +1094,10 @@
                                 "items": {
                                     "$ref": "#/components/schemas/ParameterRecord"
                                 }
+                            },
+                            "dateProperties": {
+                                "$ref": "#/components/schemas/DateProperties",
+                                "description": "Datasource-level calendar properties (fiscal year start, week start)."
                             }
                         }
                     }
@@ -1199,6 +1254,11 @@
                         "type": "boolean",
                         "default": false,
                         "description": "When true, group formula information will be included in the response of read-metadata endpoint for fields that have categorical bin data."
+                    },
+                    "includeRemoteDatabaseNames": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "When true, include each field's physical remote database column name and table name."
                     }
                 }
             },
@@ -1821,6 +1881,132 @@
                     "toField": {
                         "type": "string",
                         "description": "The field reference to which the relationship targets (e.g., [Order ID (Returns)]). Field references are typically enclosed in square brackets."
+                    }
+                }
+            },
+            "DateProperties": {
+                "type": "object",
+                "description": "Datasource-level calendar properties containing fiscal year start and week start settings.",
+                "properties": {
+                    "weekStart": {
+                        "$ref": "#/components/schemas/StartOfWeek",
+                        "description": "The day on which the week starts for this datasource."
+                    },
+                    "fiscalYearStart": {
+                        "$ref": "#/components/schemas/FiscalYearStart",
+                        "description": "The month in which the fiscal year starts for this datasource."
+                    }
+                }
+            },
+            "FiscalYearStart": {
+                "type": "string",
+                "enum": [
+                    "UNSPECIFIED",
+                    "JANUARY",
+                    "FEBRUARY",
+                    "MARCH",
+                    "APRIL",
+                    "MAY",
+                    "JUNE",
+                    "JULY",
+                    "AUGUST",
+                    "SEPTEMBER",
+                    "OCTOBER",
+                    "NOVEMBER",
+                    "DECEMBER"
+                ],
+                "description": "The month in which the fiscal year starts."
+            },
+            "StartOfWeek": {
+                "type": "string",
+                "enum": [
+                    "UNSPECIFIED",
+                    "SUNDAY",
+                    "MONDAY",
+                    "TUESDAY",
+                    "WEDNESDAY",
+                    "THURSDAY",
+                    "FRIDAY",
+                    "SATURDAY"
+                ],
+                "description": "The day on which the week starts."
+            },
+            "UserHasQueryPermissionsRequest": {
+                "type": "object",
+                "required": [
+                    "datasource"
+                ],
+                "properties": {
+                    "datasource": {
+                        "$ref": "#/components/schemas/Datasource"
+                    }
+                }
+            },
+            "QueryPermissionsOutput": {
+                "type": "object",
+                "description": "The calling user's VizQL Data Service query permission verdict for a data source, plus the full per-capability Allow/Deny matrix for every resource evaluated.",
+                "properties": {
+                    "hasQueryPermission": {
+                        "type": "boolean",
+                        "description": "True when the calling user is Allowed every required capability on every evaluated resource, meaning a query would pass the Headless BI permission check."
+                    },
+                    "datasourceType": {
+                        "type": "string",
+                        "description": "Whether the requested data source is a published data source (PUBLISHED) or a workbook data source (WORKBOOK).",
+                        "enum": [
+                            "PUBLISHED",
+                            "WORKBOOK"
+                        ]
+                    },
+                    "resources": {
+                        "type": "array",
+                        "description": "The per-resource capability matrix. For a published data source this is the data source itself; for a workbook data source this is the owning workbook plus every published data source the workbook embeds.",
+                        "items": {
+                            "$ref": "#/components/schemas/ResourcePermissions"
+                        }
+                    }
+                }
+            },
+            "ResourcePermissions": {
+                "type": "object",
+                "description": "The calling user's Allow/Deny matrix for the required capabilities on a single resource.",
+                "properties": {
+                    "resourceType": {
+                        "type": "string",
+                        "description": "The type of the resource whose capabilities were evaluated.",
+                        "enum": [
+                            "Datasource",
+                            "Workbook"
+                        ]
+                    },
+                    "luid": {
+                        "type": "string",
+                        "description": "The LUID of the evaluated resource."
+                    },
+                    "capabilities": {
+                        "type": "array",
+                        "description": "The Allow/Deny mode for each required capability on this resource.",
+                        "items": {
+                            "$ref": "#/components/schemas/CapabilityPermission"
+                        }
+                    }
+                }
+            },
+            "CapabilityPermission": {
+                "type": "object",
+                "description": "The Allow/Deny mode for a single capability.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The REST name of the capability, e.g. Read, Connect, VizqlDataApiAccess."
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "Whether the capability is granted (Allow) or not (Deny) for the calling user on this resource.",
+                        "enum": [
+                            "Allow",
+                            "Deny"
+                        ]
                     }
                 }
             }
